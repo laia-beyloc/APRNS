@@ -1,0 +1,14 @@
+# Checkpoints i memòria de repetició: grans i regenerables (l'enunciat permet deixar-los en local).
+*.pt
+*.npz
+# Vídeos de l'agent (RecordVideo de l'esquelet)
+video/
+*.mp4
+# Gràfiques temporals de helper.episode_reward_plot
+rewards.png
+# Python i entorns
+__pycache__/
+.pytest_cache/
+.venv/
+venv/
+# Els CSV/JSON de results/ NO s'ignoren: es lliuren i justifiquen les figures.
