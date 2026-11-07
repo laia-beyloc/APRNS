@@ -9,10 +9,10 @@ from typing import Callable, Optional
 
 import numpy as np
 
-from config import ExperimentConfig
-from diagnostics import overestimation_bias
-from evaluation import run_evaluation_episodes, summarize_returns
-from run_records import RunRecords
+from experiments.config import ExperimentConfig
+from experiments.diagnostics import overestimation_bias
+from experiments.evaluation import run_evaluation_episodes, summarize_returns
+from experiments.run_records import RunRecords
 
 
 @dataclass

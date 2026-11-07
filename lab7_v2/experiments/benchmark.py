@@ -1,8 +1,8 @@
 """Benchmark de cost: passos/s d'entrenament, cost d'una avaluació i estimació de l'estudi.
 
 Exemples:
-    python benchmark.py                       # 1 procés
-    python benchmark.py --parallel 1 8 14     # també amb K processos simultanis (contenció)
+    python -m experiments.benchmark                       # 1 procés
+    python -m experiments.benchmark --parallel 1 8 14     # també amb K processos simultanis (contenció)
 
 Cada mesura és un procés "worker" (1 fil, CPU) que entrena DDPG i TD3 complet
 uns quants passos sense avaluar i després mesura l'avaluació de l'agent resultant.
@@ -19,6 +19,8 @@ from pathlib import Path
 
 ALGOS = (("ddpg", "full"), ("td3", "full"))
 WORST_CASE_EVAL_LENGTH = 1000  # episodi truncat pel límit de temps de LunarLander
+# Arrel del projecte (lab7/): el worker es llança com a mòdul del paquet des d'aquí.
+ROOT = Path(__file__).resolve().parents[1]
 SINGLE_THREAD_ENV = {"OMP_NUM_THREADS": "1", "MKL_NUM_THREADS": "1", "OPENBLAS_NUM_THREADS": "1"}
 
 
@@ -27,13 +29,13 @@ def measure_one(algo: str, variant: str, steps: int, eval_episodes: int) -> dict
     import gymnasium as gym
     import torch
 
-    from config import ENV_ID, ExperimentConfig
-    from diagnostics import overestimation_bias
-    from evaluation import run_evaluation_episodes
-    from run_experiment import build_agent_and_noise
-    from run_records import RunRecords
-    from seeding import seed_everything
-    from training import train
+    from experiments.config import ENV_ID, ExperimentConfig
+    from experiments.diagnostics import overestimation_bias
+    from experiments.evaluation import run_evaluation_episodes
+    from experiments.run_experiment import build_agent_and_noise
+    from experiments.run_records import RunRecords
+    from experiments.seeding import seed_everything
+    from experiments.training import train
 
     torch.set_num_threads(1)
     seed_everything(0)
@@ -65,9 +67,9 @@ def worker_main(steps: int, eval_episodes: int) -> None:
 
 def run_parallel(k: int, steps: int, eval_episodes: int) -> list:
     """Llança k workers a la vegada i retorna la mitjana per algorisme."""
-    cmd = [sys.executable, __file__, "--worker", "--steps", str(steps), "--eval-episodes", str(eval_episodes)]
+    cmd = [sys.executable, "-m", "experiments.benchmark", "--worker", "--steps", str(steps), "--eval-episodes", str(eval_episodes)]
     env = {**os.environ, "PYTHONPATH": "", **SINGLE_THREAD_ENV}
-    procs = [subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True, env=env) for _ in range(k)]
+    procs = [subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True, env=env, cwd=ROOT) for _ in range(k)]
     per_worker = [json.loads(_result_line(p.communicate()[0])) for p in procs]
     return [_mean_dicts([w[i] for w in per_worker]) for i in range(len(ALGOS))]
 

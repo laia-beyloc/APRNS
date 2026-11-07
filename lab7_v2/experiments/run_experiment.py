@@ -1,9 +1,9 @@
 """Executa UNA execució (algorisme, variant, llavor) en un procés i una carpeta.
 
 Exemples:
-    python run_experiment.py --algo ddpg --seed 0
-    python run_experiment.py --algo td3 --variant no_delay --seed 3
-    python run_experiment.py --algo td3 --variant no_minimum --seed 0 \\
+    python -m experiments.run_experiment --algo ddpg --seed 0
+    python -m experiments.run_experiment --algo td3 --variant no_delay --seed 3
+    python -m experiments.run_experiment --algo td3 --variant no_minimum --seed 0 \\
         --resume results/full/seed_0/checkpoint.pt --results results_branched
 
 Resultat: <results>/<variant>/seed_<n>/ amb config.json, evaluations.csv,
@@ -17,7 +17,7 @@ import time
 from dataclasses import asdict
 from pathlib import Path
 
-from config import AGENT_KWARGS, ENV_ID, TARGET_NOISE_CLIP, TD3_EXPLORATION_SIGMA, VARIANTS, ExperimentConfig
+from experiments.config import AGENT_KWARGS, ENV_ID, TARGET_NOISE_CLIP, TD3_EXPLORATION_SIGMA, VARIANTS, ExperimentConfig
 
 # Només les execucions de TD3 complet desen checkpoint: és la branca de la qual
 # poden partir les altres variants (apartat 4).
@@ -55,10 +55,10 @@ def _run(args: argparse.Namespace) -> Path:
     import gymnasium as gym
     import torch
 
-    from checkpoint import CheckpointAtStep, load_checkpoint
-    from run_records import RunRecords
-    from seeding import seed_everything
-    from training import train
+    from experiments.checkpoint import CheckpointAtStep, load_checkpoint
+    from experiments.run_records import RunRecords
+    from experiments.seeding import seed_everything
+    from experiments.training import train
 
     cfg = ExperimentConfig(total_steps=args.steps, eval_every=args.eval_every, eval_episodes=args.eval_episodes,
                            results_dir=args.results, device=args.device, num_threads=args.threads)

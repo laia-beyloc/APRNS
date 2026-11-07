@@ -6,14 +6,14 @@ import numpy as np
 import pytest
 import torch
 
-from config import VARIANTS, ExperimentConfig
+from experiments.config import VARIANTS, ExperimentConfig
 from DDPG import DDPG
-from evaluation import run_evaluation_episodes
+from experiments.evaluation import run_evaluation_episodes
 from Noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise
 from TD3 import TD3
-from run_records import RunRecords
-from seeding import seed_everything
-from training import train
+from experiments.run_records import RunRecords
+from experiments.seeding import seed_everything
+from experiments.training import train
 from conftest import FakeEnv
 
 CFG = ExperimentConfig(total_steps=300, eval_every=100, eval_episodes=2)

@@ -1,8 +1,8 @@
 """Tests del llançador: llista de treballs, salt de completades i dry-run (sense entrenar)."""
 import json
 
-import launch
-from config import VARIANTS, ExperimentConfig
+from experiments import launch
+from experiments.config import VARIANTS, ExperimentConfig
 
 
 def make_run(results, job, completed):

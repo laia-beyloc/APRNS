@@ -21,7 +21,7 @@ import numpy as np
 from Noise import NormalActionNoise
 from gymnasium.wrappers import RecordVideo
 
-from config import TARGET_NOISE_CLIP, TD3_EXPLORATION_SIGMA
+from experiments.config import TARGET_NOISE_CLIP, TD3_EXPLORATION_SIGMA
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")

@@ -6,7 +6,7 @@ import pytest
 
 pytest.importorskip("Box2D")
 
-from run_experiment import CHECKPOINT_NAME, main
+from experiments.run_experiment import CHECKPOINT_NAME, main
 
 STEPS = ["--steps", "2000", "--eval-every", "1000", "--eval-episodes", "1"]
 

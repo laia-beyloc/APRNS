@@ -1,9 +1,9 @@
 """Llançador local: executa les execucions de l'estudi en paral·lel, un procés per execució.
 
 Exemples:
-    python launch.py --dry-run                 # només llista les execucions i el seu estat
-    python launch.py --workers 12              # DDPG llavor 0 + 4 variants × llavors de config.py
-    python launch.py --workers 12 --seeds 0 1 2 3 4 5 6 7 8 9
+    python -m experiments.launch --dry-run                 # només llista les execucions i el seu estat
+    python -m experiments.launch --workers 12              # DDPG llavor 0 + 4 variants × llavors de config.py
+    python -m experiments.launch --workers 12 --seeds 0 1 2 3 4 5 6 7 8 9
 
 Salta les execucions ja completades (config.json amb completed: true). Una carpeta
 incompleta no s'esborra ni es reprèn: només s'avisa (run_experiment.py no sobreescriu).
@@ -19,9 +19,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from config import VARIANTS, ExperimentConfig
+from experiments.config import VARIANTS, ExperimentConfig
 
-HERE = Path(__file__).resolve().parent
+# Arrel del projecte (lab7/): els mòduls es criden com a paquet des d'aquí.
+ROOT = Path(__file__).resolve().parents[1]
 
 
 @dataclass(frozen=True)
@@ -61,7 +62,7 @@ def job_status(job: Job, results: Path) -> str:
 
 
 def build_command(job: Job, results: Path, extra: list) -> list:
-    cmd = [sys.executable, str(HERE / "run_experiment.py"), "--algo", job.algo, "--seed", str(job.seed),
+    cmd = [sys.executable, "-m", "experiments.run_experiment", "--algo", job.algo, "--seed", str(job.seed),
            "--threads", "1", "--device", "cpu", "--results", str(results)]
     if job.algo == "td3":
         cmd += ["--variant", job.variant]
@@ -74,7 +75,7 @@ def run_job(job: Job, results: Path, extra: list) -> int:
     log.parent.mkdir(parents=True, exist_ok=True)
     env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
     with log.open("a", encoding="utf-8") as stream:
-        code = subprocess.run(build_command(job, results, extra), cwd=HERE, env=env,
+        code = subprocess.run(build_command(job, results, extra), cwd=ROOT, env=env,
                               stdout=stream, stderr=subprocess.STDOUT).returncode
     print(f"[{'ok' if code == 0 else 'ERROR'}] {job.name} seed {job.seed} (codi {code}, log {log})", flush=True)
     return code

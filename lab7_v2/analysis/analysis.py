@@ -3,7 +3,7 @@
 Només numpy/matplotlib. No genera text de discussió: això ho escriu l'usuari.
 Només s'usen execucions amb config.json["completed"] == True.
 
-Ús:  python analysis.py --results results --out .
+Ús (des de lab7/):  python -m analysis.analysis --results results --out analysis
 """
 import argparse
 import csv
@@ -16,7 +16,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-from config import VARIANTS, ExperimentConfig
+from experiments.config import VARIANTS, ExperimentConfig
 
 BOOTSTRAP_SEED = 12345
 DIAGNOSTICS = ("bias_all", "bias_s0", "critic_disagreement", "min_reduction")
@@ -274,7 +274,7 @@ def run_analysis(results_dir: Path, out_dir: Path, n_boot: int = 10_000,
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--results", type=Path, default=Path("results"))
-    parser.add_argument("--out", type=Path, default=Path("."))
+    parser.add_argument("--out", type=Path, default=Path("analysis"))
     parser.add_argument("--n-boot", type=int, default=10_000)
     parser.add_argument("--seed", type=int, default=BOOTSTRAP_SEED)
     args = parser.parse_args()

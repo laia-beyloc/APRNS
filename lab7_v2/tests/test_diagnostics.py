@@ -6,8 +6,8 @@ import pytest
 import torch
 from torch import nn
 
-from diagnostics import discounted_returns, overestimation_bias, valid_mask
-from evaluation import EpisodeTrace
+from experiments.diagnostics import discounted_returns, overestimation_bias, valid_mask
+from experiments.evaluation import EpisodeTrace
 
 
 class ConstantCritic(nn.Module):

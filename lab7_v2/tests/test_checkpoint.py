@@ -3,13 +3,13 @@ import csv
 
 import numpy as np
 
-from checkpoint import CheckpointAtStep, load_checkpoint
-from config import VARIANTS, ExperimentConfig
+from experiments.checkpoint import CheckpointAtStep, load_checkpoint
+from experiments.config import VARIANTS, ExperimentConfig
 from Noise import NormalActionNoise
-from run_records import RunRecords
-from seeding import seed_everything
+from experiments.run_records import RunRecords
+from experiments.seeding import seed_everything
 from TD3 import TD3
-from training import train
+from experiments.training import train
 from conftest import FakeEnv
 
 CFG = ExperimentConfig(total_steps=400, eval_every=100, eval_episodes=2)

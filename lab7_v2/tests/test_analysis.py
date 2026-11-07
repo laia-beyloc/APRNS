@@ -4,8 +4,8 @@ import json
 
 import numpy as np
 
-import analysis
-from config import ExperimentConfig
+from analysis import analysis
+from experiments.config import ExperimentConfig
 
 
 def make_run(root, name, seed, offset, completed=True, n=30):

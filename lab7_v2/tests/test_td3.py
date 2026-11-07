@@ -4,7 +4,7 @@ import pytest
 import torch
 
 import TD3 as td3_module
-from config import VARIANTS
+from experiments.config import VARIANTS
 from TD3 import TD3
 from conftest import FakeEnv, params_equal, random_batch, snapshot
 

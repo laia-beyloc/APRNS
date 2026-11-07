@@ -7,7 +7,7 @@ no afegeix cap pas d'entorn.
 import numpy as np
 import torch
 
-from evaluation import EpisodeTrace
+from experiments.evaluation import EpisodeTrace
 
 
 def discounted_returns(rewards: np.ndarray, gamma: float) -> np.ndarray:
