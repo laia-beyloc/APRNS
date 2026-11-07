@@ -35,9 +35,9 @@ class ExperimentConfig:
     """Paràmetres d'un experiment; es desen sencers al config.json de cada execució."""
 
     total_steps: int = 300_000          # pressupost T en transicions d'entrenament
-    seeds: tuple = (0, 1, 2, 3, 4)      # mateixes llavors a totes les variants
+    seeds: tuple = tuple(range(10))     # mateixes llavors a totes les variants (fixat pel benchmark)
     eval_every: int = 1_000             # transicions entre avaluacions
-    eval_episodes: int = 5              # es fixarà després del benchmark
+    eval_episodes: int = 5              # fixat pel benchmark
     eval_seed_base: int = 10_000        # llavors d'avaluació comunes a totes les execucions
     checkpoint_fraction: float = 1 / 3  # checkpoint a la primera frontera d'episodi ≥ T/3
     bias_min_horizon: int = 300         # passos mínims per davant per fiar-se de G_t si l'episodi es trunca

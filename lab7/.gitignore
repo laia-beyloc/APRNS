@@ -12,3 +12,6 @@ __pycache__/
 .venv/
 venv/
 # Els CSV/JSON de results/ NO s'ignoren: es lliuren i justifiquen les figures.
+# Logs de les execucions (les mesures són als CSV/JSON)
+*.log
+launch.out

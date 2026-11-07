@@ -43,10 +43,11 @@ class Job:
         return results / self.name / f"seed_{self.seed}.log"
 
 
-def default_jobs(seeds: tuple) -> list:
-    """DDPG (llavor 0) i cada variant de TD3 per a cada llavor."""
+def default_jobs(seeds: tuple, names: Optional[list] = None) -> list:
+    """DDPG (llavor 0) i cada variant de TD3 per a cada llavor; `names` filtra ("ddpg" o noms de variant)."""
     jobs = [Job("ddpg", "full", 0)]
-    return jobs + [Job("td3", variant, seed) for variant in VARIANTS for seed in seeds]
+    jobs += [Job("td3", variant, seed) for variant in VARIANTS for seed in seeds]
+    return jobs if names is None else [job for job in jobs if job.name in names]
 
 
 def job_status(job: Job, results: Path) -> str:
@@ -91,6 +92,8 @@ def parse_args(argv: Optional[list] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--workers", type=int, default=8, help="màxim d'execucions simultànies")
     parser.add_argument("--seeds", type=int, nargs="+", default=list(ExperimentConfig().seeds))
+    parser.add_argument("--variants", nargs="+", choices=["ddpg", *VARIANTS], default=None,
+                        help="només aquestes execucions (p. ex. ddpg full no_delay); per defecte totes")
     parser.add_argument("--results", type=Path, default=ExperimentConfig().results_dir)
     parser.add_argument("--steps", type=int, default=None)
     parser.add_argument("--eval-every", type=int, default=None)
@@ -101,7 +104,7 @@ def parse_args(argv: Optional[list] = None) -> argparse.Namespace:
 
 def main(argv: Optional[list] = None) -> int:
     args = parse_args(argv)
-    jobs = default_jobs(tuple(args.seeds))
+    jobs = default_jobs(tuple(args.seeds), args.variants)
     status = {job: job_status(job, args.results) for job in jobs}
     todo = [job for job in jobs if status[job] == "pending"]
     for job in jobs:

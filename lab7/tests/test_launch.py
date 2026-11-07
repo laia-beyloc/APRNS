@@ -32,7 +32,8 @@ def test_status_and_command(tmp_path):
 def test_dry_run_does_not_launch(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(launch, "run_job", lambda *a: (_ for _ in ()).throw(AssertionError("no s'ha de llançar")))
     assert launch.main(["--dry-run", "--results", str(tmp_path)]) == 0
-    assert "21 per executar" in capsys.readouterr().out
+    expected = 1 + len(VARIANTS) * len(ExperimentConfig().seeds)
+    assert f"{expected} per executar" in capsys.readouterr().out
 
 
 def test_skips_completed_and_warns_incomplete(tmp_path, monkeypatch, capsys):
