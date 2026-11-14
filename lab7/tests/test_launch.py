@@ -27,6 +27,7 @@ def test_status_and_command(tmp_path):
     cmd = launch.build_command(new, tmp_path, ["--steps", "10"])
     assert cmd[-2:] == ["--steps", "10"]
     assert cmd[cmd.index("--variant") + 1] == "full" and cmd[cmd.index("--threads") + 1] == "1"
+    assert "--continue" in cmd   # una carpeta incompleta es continua des del seu checkpoint
 
 
 def test_dry_run_does_not_launch(tmp_path, monkeypatch, capsys):
@@ -36,14 +37,13 @@ def test_dry_run_does_not_launch(tmp_path, monkeypatch, capsys):
     assert f"{expected} per executar" in capsys.readouterr().out
 
 
-def test_skips_completed_and_warns_incomplete(tmp_path, monkeypatch, capsys):
+def test_skips_completed_and_continues_incomplete(tmp_path, monkeypatch):
     make_run(tmp_path, launch.Job("ddpg", "full", 0), True)
     make_run(tmp_path, launch.Job("td3", "full", 0), False)
     launched = []
     monkeypatch.setattr(launch, "run_job", lambda job, results, extra: launched.append(job) or 0)
     assert launch.main(["--seeds", "0", "1", "--results", str(tmp_path), "--workers", "2"]) == 0
     names = {(j.name, j.seed) for j in launched}
-    assert ("ddpg", 0) not in names and ("full", 0) not in names
-    assert ("full", 1) in names and len(launched) == 1 + 4 * 2 - 2
-    assert "AVÍS" in capsys.readouterr().out
-    assert (tmp_path / "full" / "seed_0" / "config.json").exists()  # no s'ha esborrat res
+    assert ("ddpg", 0) not in names                      # completada: se salta
+    assert ("full", 0) in names and ("full", 1) in names  # incompleta: es continua
+    assert len(launched) == 1 + 4 * 2 - 1

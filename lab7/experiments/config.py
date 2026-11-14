@@ -40,6 +40,7 @@ class ExperimentConfig:
     eval_episodes: int = 5              # fixat pel benchmark
     eval_seed_base: int = 10_000        # llavors d'avaluació comunes a totes les execucions
     checkpoint_fraction: float = 1 / 3  # checkpoint a la primera frontera d'episodi ≥ T/3
+    checkpoint_every: int = 25_000      # checkpoint periòdic per reprendre després d'un tall
     bias_min_horizon: int = 300         # passos mínims per davant per fiar-se de G_t si l'episodi es trunca
     summary_last_n: int = 10            # mètrica resum pre-registrada: mitjana de les últimes N avaluacions
     results_dir: Path = field(default_factory=lambda: Path("results"))

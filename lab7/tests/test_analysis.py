@@ -12,7 +12,8 @@ def make_run(root, name, seed, offset, completed=True, n=30):
     run_dir = root / name / f"seed_{seed}"
     run_dir.mkdir(parents=True)
     (run_dir / "config.json").write_text(json.dumps(
-        {"completed": completed, "seed": seed, "variant": name}), encoding="utf-8")
+        # Com run_experiment.py: DDPG té variant = None.
+        {"completed": completed, "seed": seed, "variant": None if name == "ddpg" else name}), encoding="utf-8")
     with (run_dir / "evaluations.csv").open("w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["transitions", "eval_mean_return", "bias_all", "bias_s0",
@@ -65,4 +66,6 @@ def test_run_analysis_writes_outputs(tmp_path):
               "tables/metrics_by_variant.csv", "tables/paired_differences_vs_full.csv",
               "tables/diagnostic_bias_all.csv", "figures/diagnostic_min_reduction.png"):
         assert (out / f).exists(), f
+    explo = (out / "tables/exploratory_ddpg_vs_td3.csv").read_text(encoding="utf-8")
+    assert "ddpg" in explo and "full" in explo
     assert ExperimentConfig().summary_last_n == 10

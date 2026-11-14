@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # Prepara una VM Linux (CPU) i llança part de l'estudi. Ús, des de lab7/:
-#   bash cloud/setup_linux.sh --workers 8 --seeds 5 6 7
+#   bash cloud/setup_linux.sh --workers 4 --seeds 0 1 2 3 4
 # Tots els arguments es passen a "python -m experiments.launch".
+# Després d'un tall o reinici: tornar a executar la MATEIXA ordre (continua des dels checkpoints).
 set -e
 cd "$(dirname "$0")/.."
 
 # Dependències del sistema per compilar Box2D (Debian/Ubuntu).
-command -v swig >/dev/null || sudo apt-get install -y swig python3-venv build-essential
+command -v swig >/dev/null || { sudo apt-get update && sudo apt-get install -y swig python3-venv build-essential; }
 
 [ -d .venv ] || python3 -m venv .venv
 . .venv/bin/activate

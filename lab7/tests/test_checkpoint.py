@@ -2,14 +2,15 @@
 import csv
 
 import numpy as np
+import pytest
 
-from experiments.checkpoint import CheckpointAtStep, load_checkpoint
+from experiments.checkpoint import CheckpointAtStep, PeriodicCheckpoint, load_checkpoint
 from experiments.config import VARIANTS, ExperimentConfig
 from Noise import NormalActionNoise
 from experiments.run_records import RunRecords
 from experiments.seeding import seed_everything
 from TD3 import TD3
-from experiments.training import train
+from experiments.training import LoopState, MetricWindow, train
 from conftest import FakeEnv
 
 CFG = ExperimentConfig(total_steps=400, eval_every=100, eval_episodes=2)
@@ -60,3 +61,50 @@ def test_branches_from_one_checkpoint_are_independent(tmp_path):
     a.replay_buffer.arrays[2][0] = 1e6     # modificar una branca no pot afectar l'altra
     assert b.replay_buffer.arrays[2][0] != 1e6
     assert a.policy_delay == 1 and b.use_minimum is False   # els interruptors són els de la variant nova
+
+
+class Crash(Exception):
+    pass
+
+
+def test_cut_and_continue_gives_identical_measurements(tmp_path):
+    # Referència sense talls.
+    agent, env = _agent_env()
+    train(agent, env, FakeEnv(), NormalActionNoise(np.zeros(2), 0.1), CFG,
+          RunRecords(tmp_path / "ref", {}), seed=0)
+
+    # Mateixa execució, tallada després del checkpoint periòdic (simula un tall de la VM).
+    agent, env = _agent_env()
+    latest = tmp_path / "cut" / "checkpoint_latest.pt"
+    periodic = PeriodicCheckpoint(latest, agent, env, every=150)
+
+    def hook(state):
+        periodic(state)
+        if state.step >= 320:
+            raise Crash
+    with pytest.raises(Crash):
+        train(agent, env, FakeEnv(), NormalActionNoise(np.zeros(2), 0.1), CFG,
+              RunRecords(tmp_path / "cut", {"seed": 0}), seed=0, on_episode_end=hook)
+
+    # Continuació en un procés "nou": agent amb altres pesos, restaurat des del checkpoint.
+    seed_everything(99)
+    env2 = FakeEnv()
+    resumed = TD3(env2, replay_size=1000, batch_size=16, **VARIANTS["full"])
+    records = RunRecords.reopen(tmp_path / "cut")
+    state = load_checkpoint(latest, resumed, env2)
+    assert 150 <= state.step < 320 and records.config == {"seed": 0}
+    train(resumed, env2, FakeEnv(), NormalActionNoise(np.zeros(2), 0.1), CFG, records, seed=0, state=state)
+
+    for name in ("evaluations.csv", "train_episodes.csv"):
+        assert _rows(tmp_path / "ref" / name) == _rows(tmp_path / "cut" / name)
+
+
+def test_periodic_checkpoint_schedule(tmp_path):
+    agent, env = _agent_env()
+    saved = []
+    periodic = PeriodicCheckpoint(tmp_path / "latest.pt", agent, env, every=100, start_step=130)
+    for step in (150, 199, 205, 230, 310):
+        before = periodic.next_step
+        periodic(LoopState(window=MetricWindow(agent.metric_names), step=step))
+        saved.append(periodic.next_step != before)
+    assert saved == [False, False, True, False, True]

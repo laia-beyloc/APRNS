@@ -6,11 +6,17 @@ Exemples:
     python -m experiments.run_experiment --algo td3 --variant no_minimum --seed 0 \\
         --resume results/full/seed_0/checkpoint.pt --results results_branched
 
+    python -m experiments.run_experiment --algo td3 --variant full --seed 2 --continue
+
 Resultat: <results>/<variant>/seed_<n>/ amb config.json, evaluations.csv,
-train_episodes.csv i, a TD3 complet, checkpoint.pt (ignorat per git).
+train_episodes.csv i, a TD3 complet, checkpoint.pt (branca de l'apartat 4).
+Durant l'execució es manté checkpoint_latest.pt (represa després d'un tall; s'esborra
+en acabar). Els .pt els ignora git.
 """
 import argparse
+import json
 import os
+import shutil
 import platform
 import sys
 import time
@@ -23,6 +29,7 @@ from experiments.config import AGENT_KWARGS, ENV_ID, TARGET_NOISE_CLIP, TD3_EXPL
 # poden partir les altres variants (apartat 4).
 CHECKPOINT_VARIANTS = ("full",)
 CHECKPOINT_NAME = "checkpoint.pt"
+LATEST_CHECKPOINT_NAME = "checkpoint_latest.pt"
 
 
 def parse_args(argv=None) -> argparse.Namespace:
@@ -38,6 +45,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("--threads", type=int, default=defaults.num_threads)
     parser.add_argument("--results", type=Path, default=defaults.results_dir)
     parser.add_argument("--resume", type=Path, default=None, help="checkpoint de TD3 complet de la mateixa llavor")
+    parser.add_argument("--continue", dest="continue_run", action="store_true",
+                        help="si la carpeta ja existeix i no està completada, la continua des del seu checkpoint")
     return parser.parse_args(argv)
 
 
@@ -50,12 +59,19 @@ def main(argv=None) -> Path:
     return _run(args)
 
 
+def run_directory(args: argparse.Namespace) -> Path:
+    """<results>/<variant|ddpg>/seed_<n>/."""
+    return args.results / ("ddpg" if args.algo == "ddpg" else args.variant) / f"seed_{args.seed}"
+
+
 def _run(args: argparse.Namespace) -> Path:
+    if args.continue_run and is_completed(run_directory(args)):
+        return run_directory(args)  # res a fer
     # Imports aquí perquè torch es carregui després de fixar CUDA_VISIBLE_DEVICES.
     import gymnasium as gym
     import torch
 
-    from experiments.checkpoint import CheckpointAtStep, load_checkpoint
+    from experiments.checkpoint import CheckpointAtStep, PeriodicCheckpoint, load_checkpoint
     from experiments.run_records import RunRecords
     from experiments.seeding import seed_everything
     from experiments.training import train
@@ -68,25 +84,58 @@ def _run(args: argparse.Namespace) -> Path:
     eval_env = gym.make(ENV_ID, continuous=True)
     agent, noise = build_agent_and_noise(args.algo, args.variant, env)
 
-    run_name = "ddpg" if args.algo == "ddpg" else args.variant
-    run_dir = cfg.results_dir / run_name / f"seed_{args.seed}"
-    records = RunRecords(run_dir, run_config(args, cfg, agent, noise))
+    run_dir = run_directory(args)
+    latest = run_dir / LATEST_CHECKPOINT_NAME
+    records, state = None, None
+    if args.continue_run and run_dir.exists():
+        records, state = _reopen_interrupted(run_dir, latest, agent, env, RunRecords, load_checkpoint)
+    if records is None:
+        records = RunRecords(run_dir, run_config(args, cfg, agent, noise))
+        if args.resume is not None:
+            state = load_checkpoint(args.resume, agent, env)
+        records.write_config(branch_step=state.step if state else 0)
 
-    state, hook = None, None
-    if args.resume is not None:
-        state = load_checkpoint(args.resume, agent, env)
-    elif args.algo == "td3" and args.variant in CHECKPOINT_VARIANTS:
-        hook = CheckpointAtStep(run_dir / CHECKPOINT_NAME, agent, env, int(cfg.total_steps * cfg.checkpoint_fraction))
-    records.write_config(branch_step=state.step if state else 0)
+    hooks = [PeriodicCheckpoint(latest, agent, env, cfg.checkpoint_every, state.step if state else 0)]
+    if (args.algo == "td3" and args.variant in CHECKPOINT_VARIANTS and args.resume is None
+            and not (run_dir / CHECKPOINT_NAME).exists()):
+        hooks.append(CheckpointAtStep(run_dir / CHECKPOINT_NAME, agent, env,
+                                      int(cfg.total_steps * cfg.checkpoint_fraction),
+                                      on_saved=lambda step: records.write_config(checkpoint_step=step)))
 
     start = time.time()
-    final = train(agent, env, eval_env, noise, cfg, records, args.seed, state=state, on_episode_end=hook)
+    final = train(agent, env, eval_env, noise, cfg, records, args.seed, state=state,
+                  on_episode_end=lambda loop_state: [hook(loop_state) for hook in hooks])
     records.write_config(completed=True, final_step=final.step, train_episodes=final.episode,
                          critic_updates=agent.critic_updates, actor_updates=agent.actor_updates,
-                         checkpoint_step=hook.saved_at if hook else None, wall_time_s=round(time.time() - start, 1))
+                         wall_time_s=round(time.time() - start, 1))  # del darrer tram si s'ha continuat
+    latest.unlink(missing_ok=True)  # ja no cal: l'execució és completa
     env.close()
     eval_env.close()
     return run_dir
+
+
+def _reopen_interrupted(run_dir: Path, latest: Path, agent, env, records_cls, load_checkpoint):
+    """Retorna (records, state) per continuar una carpeta interrompuda, o (None, None) per tornar a començar.
+
+    Sense checkpoint_latest.pt, el tall va ser abans del primer checkpoint periòdic: es
+    descarta la carpeta (menys de checkpoint_every passos, que es regeneren idènticament
+    perquè l'execució és determinista per llavor).
+    """
+    if latest.exists():
+        records = records_cls.reopen(run_dir)
+        state = load_checkpoint(latest, agent, env)
+        records.write_config(continued_from=records.config.get("continued_from", []) + [state.step])
+        return records, state
+    shutil.rmtree(run_dir)
+    return None, None
+
+
+def is_completed(run_dir: Path) -> bool:
+    """True si la carpeta conté una execució acabada (config.json amb completed: true)."""
+    try:
+        return json.loads((run_dir / "config.json").read_text(encoding="utf-8")).get("completed") is True
+    except (OSError, ValueError):
+        return False
 
 
 def build_agent_and_noise(algo: str, variant: str, env):

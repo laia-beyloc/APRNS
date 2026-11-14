@@ -52,7 +52,8 @@ def load_runs(results_dir: Path) -> dict:
         columns = read_csv_columns(csv_path)
         if "transitions" not in columns:
             continue
-        variant = config.get("variant", config_path.parent.parent.name)
+        # El nom de la carpeta (ddpg o variant) és la clau: a DDPG, config["variant"] és None.
+        variant = config_path.parent.parent.name
         runs.setdefault(variant, {})[int(config["seed"])] = columns
     return runs
 

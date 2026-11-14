@@ -34,3 +34,20 @@ def test_smoke_ddpg_td3_and_branch(tmp_path):
     config = json.loads((branch_dir / "config.json").read_text(encoding="utf-8"))
     assert config["branch_step"] > 0 and config["switches"]["use_minimum"] is False
     assert len(_evaluations(branch_dir)) == 2
+
+
+def test_continue_skips_completed_and_restarts_partial(tmp_path):
+    args = ["--algo", "ddpg", "--seed", "0", *STEPS, "--results", str(tmp_path), "--continue"]
+    run_dir = main(args)
+    config_path = run_dir / "config.json"
+    before = config_path.read_text(encoding="utf-8")
+    assert not (run_dir / "checkpoint_latest.pt").exists()   # s'esborra en acabar
+    main(args)                                                # completada: no es toca
+    assert config_path.read_text(encoding="utf-8") == before
+
+    # Carpeta a mitges sense checkpoint (tall abans del primer checkpoint periòdic).
+    config_path.write_text(json.dumps({"completed": False}), encoding="utf-8")
+    (run_dir / "evaluations.csv").write_text("brossa\n", encoding="utf-8")
+    main(args)
+    assert json.loads(config_path.read_text(encoding="utf-8"))["completed"] is True
+    assert [r["transitions"] for r in _evaluations(run_dir)] == ["1000", "2000"]

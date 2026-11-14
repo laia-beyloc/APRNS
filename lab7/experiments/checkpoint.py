@@ -1,11 +1,15 @@
-"""Checkpoint complet d'una execució i represa (apartat 4, opció d'estalvi de còmput).
+"""Checkpoint complet d'una execució i represa.
 
+Dos usos: la branca de l'apartat 4 (checkpoint de TD3 complet a T/3) i la represa
+després d'un tall (checkpoint periòdic de totes les execucions).
 Es desa a una frontera d'episodi: xarxes en línia i objectiu, optimitzadors, memòria
 de repetició, comptadors d'actualitzacions, estat del bucle i tots els generadors
-aleatoris (python, numpy, torch, cuda i entorn). Així una branca continua exactament
-com ho hauria fet l'execució original.
+aleatoris (python, numpy, torch, cuda i entorn). Així es continua exactament com ho
+hauria fet l'execució original.
 """
+import os
 from pathlib import Path
+from typing import Callable, Optional
 
 import torch
 from torch import nn, optim
@@ -20,7 +24,12 @@ def _stateful_parts(agent) -> dict:
 
 
 def save_checkpoint(path: Path, agent, env, state: LoopState) -> None:
-    """Desa a `path` tot el necessari per reprendre l'execució des de `state`."""
+    """Desa a `path` tot el necessari per reprendre l'execució des de `state`.
+
+    S'escriu a un fitxer temporal i es reanomena: un tall durant l'escriptura mai deixa
+    un checkpoint a mitges al lloc del bo.
+    """
+    tmp = Path(str(path) + ".tmp")
     torch.save({
         "parts": {name: obj.state_dict() for name, obj in _stateful_parts(agent).items()},
         "replay_buffer": agent.replay_buffer.state_dict(),
@@ -28,7 +37,8 @@ def save_checkpoint(path: Path, agent, env, state: LoopState) -> None:
         "loop_state": state,
         "rng": capture_rng_state(),
         "env_rng": env.unwrapped.np_random.bit_generator.state,
-    }, path)
+    }, tmp)
+    os.replace(tmp, path)
 
 
 def load_checkpoint(path: Path, agent, env) -> LoopState:
@@ -52,11 +62,28 @@ def load_checkpoint(path: Path, agent, env) -> LoopState:
 class CheckpointAtStep:
     """Callback per a train(): desa un sol checkpoint a la primera frontera d'episodi ≥ at_step."""
 
-    def __init__(self, path: Path, agent, env, at_step: int):
+    def __init__(self, path: Path, agent, env, at_step: int, on_saved: Optional[Callable[[int], None]] = None):
         self.path, self.agent, self.env, self.at_step = Path(path), agent, env, at_step
+        self.on_saved = on_saved
         self.saved_at = None
 
     def __call__(self, state: LoopState) -> None:
         if self.saved_at is None and state.step >= self.at_step:
             save_checkpoint(self.path, self.agent, self.env, state)
             self.saved_at = state.step
+            if self.on_saved is not None:
+                self.on_saved(state.step)
+
+
+class PeriodicCheckpoint:
+    """Callback per a train(): sobreescriu `path` a la primera frontera d'episodi després
+    de cada múltiple de `every` passos. Un tall perd com a màxim ~`every` passos."""
+
+    def __init__(self, path: Path, agent, env, every: int, start_step: int = 0):
+        self.path, self.agent, self.env, self.every = Path(path), agent, env, every
+        self.next_step = (start_step // every + 1) * every
+
+    def __call__(self, state: LoopState) -> None:
+        if state.step >= self.next_step:
+            save_checkpoint(self.path, self.agent, self.env, state)
+            self.next_step = (state.step // self.every + 1) * self.every

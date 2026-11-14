@@ -6,7 +6,9 @@ Exemples:
     python -m experiments.launch --workers 12 --seeds 0 1 2 3 4 5 6 7 8 9
 
 Salta les execucions ja completades (config.json amb completed: true). Una carpeta
-incompleta no s'esborra ni es reprèn: només s'avisa (run_experiment.py no sobreescriu).
+incompleta (tall de la màquina o del procés) es continua des del seu checkpoint_latest.pt
+(run_experiment.py --continue): després d'un tall n'hi ha prou de tornar a llançar la
+mateixa ordre. No llanceu dues vegades el llançador sobre la mateixa carpeta alhora.
 El stdout/stderr de cada execució va a <results>/<nom>/seed_<n>.log.
 """
 import argparse
@@ -64,7 +66,7 @@ def job_status(job: Job, results: Path) -> str:
 
 def build_command(job: Job, results: Path, extra: list) -> list:
     cmd = [sys.executable, "-m", "experiments.run_experiment", "--algo", job.algo, "--seed", str(job.seed),
-           "--threads", "1", "--device", "cpu", "--results", str(results)]
+           "--threads", "1", "--device", "cpu", "--results", str(results), "--continue"]
     if job.algo == "td3":
         cmd += ["--variant", job.variant]
     return cmd + extra
@@ -74,7 +76,9 @@ def run_job(job: Job, results: Path, extra: list) -> int:
     """Executa un treball com a subprocés i en desa la sortida al log."""
     log = job.log_path(results)
     log.parent.mkdir(parents=True, exist_ok=True)
-    env = {k: v for k, v in os.environ.items() if k != "PYTHONPATH"}
+    # 1 fil per procés també per a numpy/OpenMP: els processos paral·lels no s'han de trepitjar.
+    env = {**{k: v for k, v in os.environ.items() if k != "PYTHONPATH"},
+           "OMP_NUM_THREADS": "1", "MKL_NUM_THREADS": "1", "OPENBLAS_NUM_THREADS": "1"}
     with log.open("a", encoding="utf-8") as stream:
         code = subprocess.run(build_command(job, results, extra), cwd=ROOT, env=env,
                               stdout=stream, stderr=subprocess.STDOUT).returncode
@@ -106,13 +110,11 @@ def main(argv: Optional[list] = None) -> int:
     args = parse_args(argv)
     jobs = default_jobs(tuple(args.seeds), args.variants)
     status = {job: job_status(job, args.results) for job in jobs}
-    todo = [job for job in jobs if status[job] == "pending"]
+    todo = [job for job in jobs if status[job] != "done"]
     for job in jobs:
         print(f"{status[job]:<10} {job.name:<13} seed {job.seed}")
-        if status[job] == "incomplete":
-            print(f"AVÍS: {job.run_dir(args.results)} existeix però no està completada; no s'executa ni s'esborra.")
-    print(f"{len(todo)} per executar, {sum(s == 'done' for s in status.values())} completades, "
-          f"{sum(s == 'incomplete' for s in status.values())} incompletes.")
+    print(f"{len(todo)} per executar ({sum(s == 'incomplete' for s in status.values())} es continuen "
+          f"des del seu checkpoint), {sum(s == 'done' for s in status.values())} completades.")
     if args.dry_run or not todo:
         return 0
     extra = extra_args(args)
