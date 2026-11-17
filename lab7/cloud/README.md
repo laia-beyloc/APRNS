@@ -81,6 +81,28 @@ L'alerta no atura res i arriba amb hores de retard; si s'acaba el crèdit d'Azur
 la subscripció es desactiva i les execucions s'aturen (es poden continuar després gràcies als
 checkpoints, si encara hi ha VM).
 
+## 6. Prova de control fora de protocol (10 execucions)
+TD3 complet amb canvis declarats (`SANITY_CONFIGS` a `experiments/config.py`), llavors 0–4
+(aparellades amb `full` 0–4 de l'estudi). No forma part de l'ablació ni de `analysis.py`.
+
+| Nom | Canvi respecte de `full` | Pregunta |
+|---|---|---|
+| `td3_paper` | hiperparàmetres de [2]: τ = 0,005, lr 1e-3, sense weight decay, batch 100, 10.000 passos aleatoris inicials | la implementació aprèn a aterrar amb la configuració de l'article de TD3? |
+| `no_weight_decay` | només sense weight decay als crítics | el weight decay explica la infraestimació i el planeig? |
+
+Totes les execucions noves desen `final_model.pt` (xarxes finals, no es versiona) i
+`final_evaluation.csv` (100 episodis amb llavors noves; resum a `config.json`).
+
+Amb 2 VM de 4 vCPU (mateixa creació que l'apartat 1; ~14–18 h de paret):
+```bash
+bash cloud/setup_linux.sh --workers 4 --seeds 0 1 2 --variants td3_paper no_weight_decay   # VM 1: 6 execucions
+bash cloud/setup_linux.sh --workers 4 --seeds 3 4   --variants td3_paper no_weight_decay   # VM 2: 4 execucions
+```
+Amb 1 sola VM: `--seeds 0 1 2 3 4` (3 tandes, ~21–27 h). Estat: `python -m experiments.launch
+--dry-run --seeds 0 1 2 3 4 --variants td3_paper no_weight_decay`. Recollida i tancament com als
+apartats 3 i 4 (el `tar` ja exclou els `.pt`; si es volen les xarxes finals per gravar vídeos,
+feu un segon `tar` de `results/*/seed_*/final_model.pt`).
+
 ## A l'informe
 Cada `config.json` registra dispositiu i versions. Les dues VM són del mateix tipus, però en
 regions diferents (el model de CPU pot variar): cal declarar-ho.
