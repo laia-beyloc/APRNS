@@ -51,3 +51,13 @@ def test_continue_skips_completed_and_restarts_partial(tmp_path):
     main(args)
     assert json.loads(config_path.read_text(encoding="utf-8"))["completed"] is True
     assert [r["transitions"] for r in _evaluations(run_dir)] == ["1000", "2000"]
+
+
+def test_smoke_sanity_config(tmp_path):
+    run_dir = main(["--algo", "td3", "--variant", "td3_paper", "--seed", "0", *STEPS, "--results", str(tmp_path)])
+    config = json.loads((run_dir / "config.json").read_text(encoding="utf-8"))
+    assert config["completed"] and config["tau"] == 0.005 and config["agent_kwargs"]["batch_size"] == 100
+    assert config["switches"] == {"use_minimum": True, "target_noise": 0.2, "policy_delay": 2}
+    assert config["experiment"]["random_start_steps"] == 10_000
+    assert config["critic_updates"] == 0          # 2.000 passos < 10.000 passos aleatoris inicials
+    assert not (run_dir / CHECKPOINT_NAME).exists()  # la branca de l'apartat 4 només és de "full"

@@ -29,6 +29,30 @@ TARGET_NOISE_CLIP = 0.5
 # a totes les variants perquè l'exploració no és un mecanisme ablacionat.
 TD3_EXPLORATION_SIGMA = 0.1
 
+# Prova de control FORA DEL PROTOCOL (no forma part de l'estudi d'ablació ni del seu
+# anàlisi). L'enunciat fixa els hiperparàmetres de [1] i τ = 0.001; amb ells TD3 complet
+# no aprèn a aterrar dins T. Aquesta prova comprova que no és un error d'implementació:
+# TD3 complet (mateixos interruptors que "full") amb canvis declarats.
+#   td3_paper: hiperparàmetres de la taula 3 de [2] (τ = 0.005, lr 1e-3 a actor i crítics,
+#              sense weight decay, batch 100, 10.000 passos inicials d'accions aleatòries).
+#              L'arquitectura (amb LayerNorm) és la de l'esquelet, que no es pot canviar.
+#   no_weight_decay: només treu el weight decay dels crítics (hipòtesi: la penalització
+#              dels pesos del crític contribueix a la infraestimació i a planejar).
+SANITY_CONFIGS = {
+    "td3_paper": {"agent": {"tau": 0.005, "actor_lr": 1e-3, "critic_lr": 1e-3,
+                            "critic_weight_decay": 0.0, "batch_size": 100},
+                  "random_start_steps": 10_000},
+    "no_weight_decay": {"agent": {"critic_weight_decay": 0.0}, "random_start_steps": 0},
+}
+
+
+def td3_settings(name: str) -> tuple:
+    """(interruptors, arguments de l'agent, passos aleatoris inicials) d'una variant o prova de control."""
+    if name in VARIANTS:
+        return VARIANTS[name], dict(AGENT_KWARGS), 0
+    sanity = SANITY_CONFIGS[name]
+    return VARIANTS["full"], {**AGENT_KWARGS, **sanity["agent"]}, sanity["random_start_steps"]
+
 
 @dataclass
 class ExperimentConfig:
@@ -43,6 +67,7 @@ class ExperimentConfig:
     checkpoint_every: int = 25_000      # checkpoint periòdic per reprendre després d'un tall
     bias_min_horizon: int = 300         # passos mínims per davant per fiar-se de G_t si l'episodi es trunca
     summary_last_n: int = 10            # mètrica resum pre-registrada: mitjana de les últimes N avaluacions
+    random_start_steps: int = 0         # passos inicials amb accions uniformes (sense aprendre); 0 a l'estudi
     results_dir: Path = field(default_factory=lambda: Path("results"))
     device: str = "cpu"                 # "cpu" força CPU (paral·lelització per processos)
     num_threads: int = 1

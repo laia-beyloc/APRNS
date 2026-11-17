@@ -72,3 +72,15 @@ def test_run_folder_is_never_overwritten(tmp_path):
     RunRecords(tmp_path / "run", {})
     with pytest.raises(FileExistsError):
         RunRecords(tmp_path / "run", {})
+
+
+def test_random_start_steps_act_uniformly_and_delay_learning(tmp_path):
+    cfg = ExperimentConfig(total_steps=120, eval_every=60, eval_episodes=1, random_start_steps=80)
+    seed_everything(0)
+    agent = TD3(FakeEnv(), replay_size=1000, batch_size=16)
+    noise = NormalActionNoise(np.zeros(2), 0.1)
+    train(agent, FakeEnv(), FakeEnv(), noise, cfg, RunRecords(tmp_path / "run", {}), 0)
+    actions = agent.replay_buffer.arrays[1]
+    # Abans de random_start_steps no s'aprèn i les accions cobreixen tot [-1, 1].
+    assert agent.critic_updates == cfg.total_steps - cfg.random_start_steps
+    assert np.abs(actions[:80]).max() > 0.9 and np.abs(actions[:80]).max() <= 1.0

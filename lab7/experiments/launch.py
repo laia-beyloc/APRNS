@@ -21,7 +21,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from experiments.config import VARIANTS, ExperimentConfig
+from experiments.config import SANITY_CONFIGS, VARIANTS, ExperimentConfig
 
 # Arrel del projecte (lab7/): els mòduls es criden com a paquet des d'aquí.
 ROOT = Path(__file__).resolve().parents[1]
@@ -46,10 +46,15 @@ class Job:
 
 
 def default_jobs(seeds: tuple, names: Optional[list] = None) -> list:
-    """DDPG (llavor 0) i cada variant de TD3 per a cada llavor; `names` filtra ("ddpg" o noms de variant)."""
-    jobs = [Job("ddpg", "full", 0)]
-    jobs += [Job("td3", variant, seed) for variant in VARIANTS for seed in seeds]
-    return jobs if names is None else [job for job in jobs if job.name in names]
+    """DDPG (llavor 0) i cada variant de TD3 per a cada llavor; `names` filtra ("ddpg" o noms de variant).
+
+    Les proves de control (SANITY_CONFIGS) no formen part de l'estudi: només s'inclouen
+    si s'anomenen explícitament a `names`.
+    """
+    if names is None:
+        return [Job("ddpg", "full", 0)] + [Job("td3", variant, seed) for variant in VARIANTS for seed in seeds]
+    jobs = [Job("ddpg", "full", 0)] + [Job("td3", name, seed) for name in (*VARIANTS, *SANITY_CONFIGS) for seed in seeds]
+    return [job for job in jobs if job.name in names]
 
 
 def job_status(job: Job, results: Path) -> str:
@@ -96,8 +101,9 @@ def parse_args(argv: Optional[list] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--workers", type=int, default=8, help="màxim d'execucions simultànies")
     parser.add_argument("--seeds", type=int, nargs="+", default=list(ExperimentConfig().seeds))
-    parser.add_argument("--variants", nargs="+", choices=["ddpg", *VARIANTS], default=None,
-                        help="només aquestes execucions (p. ex. ddpg full no_delay); per defecte totes")
+    parser.add_argument("--variants", nargs="+", choices=["ddpg", *VARIANTS, *SANITY_CONFIGS], default=None,
+                        help="només aquestes execucions (p. ex. ddpg full no_delay); per defecte l'estudi sencer "
+                             "(les proves de control, com td3_paper, només si s'anomenen)")
     parser.add_argument("--results", type=Path, default=ExperimentConfig().results_dir)
     parser.add_argument("--steps", type=int, default=None)
     parser.add_argument("--eval-every", type=int, default=None)

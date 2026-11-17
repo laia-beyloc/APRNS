@@ -23,7 +23,8 @@ import time
 from dataclasses import asdict
 from pathlib import Path
 
-from experiments.config import AGENT_KWARGS, ENV_ID, TARGET_NOISE_CLIP, TD3_EXPLORATION_SIGMA, VARIANTS, ExperimentConfig
+from experiments.config import (AGENT_KWARGS, ENV_ID, SANITY_CONFIGS, TARGET_NOISE_CLIP, TD3_EXPLORATION_SIGMA, VARIANTS,
+                                ExperimentConfig, td3_settings)
 
 # Només les execucions de TD3 complet desen checkpoint: és la branca de la qual
 # poden partir les altres variants (apartat 4).
@@ -36,7 +37,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     defaults = ExperimentConfig()
     parser = argparse.ArgumentParser(description="Una execució de DDPG o d'una variant de TD3.")
     parser.add_argument("--algo", choices=("ddpg", "td3"), required=True)
-    parser.add_argument("--variant", choices=tuple(VARIANTS), default="full", help="només per a td3")
+    parser.add_argument("--variant", choices=(*VARIANTS, *SANITY_CONFIGS), default="full",
+                        help="només per a td3 (les de SANITY_CONFIGS són la prova de control fora de protocol)")
     parser.add_argument("--seed", type=int, required=True)
     parser.add_argument("--steps", type=int, default=defaults.total_steps)
     parser.add_argument("--eval-every", type=int, default=defaults.eval_every)
@@ -76,8 +78,10 @@ def _run(args: argparse.Namespace) -> Path:
     from experiments.seeding import seed_everything
     from experiments.training import train
 
+    random_start = td3_settings(args.variant)[2] if args.algo == "td3" else 0
     cfg = ExperimentConfig(total_steps=args.steps, eval_every=args.eval_every, eval_episodes=args.eval_episodes,
-                           results_dir=args.results, device=args.device, num_threads=args.threads)
+                           results_dir=args.results, device=args.device, num_threads=args.threads,
+                           random_start_steps=random_start)
     torch.set_num_threads(cfg.num_threads)
     seed_everything(args.seed)
     env = gym.make(ENV_ID, continuous=True)
@@ -149,7 +153,8 @@ def build_agent_and_noise(algo: str, variant: str, env):
         # Mateixa crida que fa learn() de l'esquelet (paràmetres per defecte de Noise.py).
         return DDPG(env, **AGENT_KWARGS), OrnsteinUhlenbeckActionNoise(mu=np.zeros(act_dim))
     from TD3 import TD3
-    return TD3(env, **AGENT_KWARGS, **VARIANTS[variant]), NormalActionNoise(np.zeros(act_dim), TD3_EXPLORATION_SIGMA)
+    switches, agent_kwargs, _ = td3_settings(variant)
+    return TD3(env, **agent_kwargs, **switches), NormalActionNoise(np.zeros(act_dim), TD3_EXPLORATION_SIGMA)
 
 
 def run_config(args: argparse.Namespace, cfg: ExperimentConfig, agent, noise) -> dict:
@@ -160,9 +165,11 @@ def run_config(args: argparse.Namespace, cfg: ExperimentConfig, agent, noise) ->
 
     return {
         "algorithm": args.algo, "variant": args.variant if args.algo == "td3" else None,
-        "switches": VARIANTS[args.variant] if args.algo == "td3" else None,
+        "switches": td3_settings(args.variant)[0] if args.algo == "td3" else None,
+        "sanity_check": SANITY_CONFIGS.get(args.variant) if args.algo == "td3" else None,
         "seed": args.seed, "env_id": ENV_ID, "experiment": asdict(cfg), "eval_seeds": cfg.eval_seeds(),
-        "agent_kwargs": AGENT_KWARGS, "tau": agent.tau,
+        "agent_kwargs": {"replay_size": agent.replay_buffer.capacity, "batch_size": agent.batch_size,
+                         "gamma": agent.gamma}, "tau": agent.tau,
         "optimizers": {name: {k: v for k, v in opt.defaults.items() if k in ("lr", "weight_decay")}
                        for name, opt in vars(agent).items() if isinstance(opt, torch.optim.Optimizer)},
         "exploration": {"type": type(noise).__name__,

@@ -32,7 +32,8 @@ class TD3:
     """The TD3 Agent."""
 
     def __init__(self, env, replay_size=1000000, batch_size=32, gamma=0.99,
-                 use_minimum=True, target_noise=0.2, policy_delay=2, noise_clip=TARGET_NOISE_CLIP):
+                 use_minimum=True, target_noise=0.2, policy_delay=2, noise_clip=TARGET_NOISE_CLIP,
+                 tau=0.001, actor_lr=0.0001, critic_lr=0.001, critic_weight_decay=0.01):
         """ Initializes the TD3 method.
 
         Parameters
@@ -53,6 +54,9 @@ class TD3:
             Iteracions d'aprenentatge del crític per cada actualització de l'actor i dels targets.
         noise_clip: float
             c, retall del soroll del suavitzat.
+        tau, actor_lr, critic_lr, critic_weight_decay: float
+            Per defecte, els valors de l'esquelet (DDPG.py), que són els de l'estudi.
+            Només la prova de control fora de protocol (config.SANITY_CONFIGS) els canvia.
         """
 
         self.obs_dim, self.act_dim = env.observation_space.shape[0], env.action_space.shape[0]
@@ -85,7 +89,7 @@ class TD3:
         copy_target(self.Actor_target, self.Actor)
 
         # τ igual que a DDPG (3.1.3: no es compensa el retard canviant-lo).
-        self.tau = 0.001
+        self.tau = tau
         self.critic_updates = 0
         self.actor_updates = 0
         # Claus del dict que retorna update(); el bucle comú les fa servir per fixar el CSV.
@@ -95,9 +99,9 @@ class TD3:
 
         # Define the optimizers for the actor and critic networks as proposed in the paper
         # El segon crític fa servir el mateix optimitzador i hiperparàmetres que el primer.
-        self.optim_dqn = optim.Adam(self.Critic.parameters(), lr=0.001, weight_decay=0.01)
-        self.optim_critic2 = optim.Adam(self.Critic2.parameters(), lr=0.001, weight_decay=0.01)
-        self.optim_actor = optim.Adam(self.Actor.parameters(), lr=0.0001)
+        self.optim_dqn = optim.Adam(self.Critic.parameters(), lr=critic_lr, weight_decay=critic_weight_decay)
+        self.optim_critic2 = optim.Adam(self.Critic2.parameters(), lr=critic_lr, weight_decay=critic_weight_decay)
+        self.optim_actor = optim.Adam(self.Actor.parameters(), lr=actor_lr)
 
 
     def learn(self, timesteps):

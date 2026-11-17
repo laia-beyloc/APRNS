@@ -74,7 +74,12 @@ def train(agent, env, eval_env, noise, cfg: ExperimentConfig, records: RunRecord
     start_time = time.time()
 
     while state.step < cfg.total_steps:
-        action = np.clip(agent.choose_action(obs) + noise.sample(), -1.0, 1.0)
+        if state.step < cfg.random_start_steps:
+            # Accions uniformes a [-1, 1] amb el generador global de numpy (el que desa el
+            # checkpoint), com fa [2] als primers passos. A l'estudi random_start_steps = 0.
+            action = np.random.uniform(-1.0, 1.0, size=agent.act_dim)
+        else:
+            action = np.clip(agent.choose_action(obs) + noise.sample(), -1.0, 1.0)
         next_obs, reward, terminated, truncated, _ = env.step(action)
         agent.replay_buffer.put(obs, action, reward, next_obs, terminated, truncated)
         obs = next_obs
@@ -82,7 +87,7 @@ def train(agent, env, eval_env, noise, cfg: ExperimentConfig, records: RunRecord
         episode_length += 1
         state.step += 1
 
-        if len(agent.replay_buffer) > agent.batch_size:
+        if len(agent.replay_buffer) > agent.batch_size and state.step > cfg.random_start_steps:
             state.window.add(agent.update(agent.replay_buffer.get(agent.batch_size)))
 
         if state.step % cfg.eval_every == 0:

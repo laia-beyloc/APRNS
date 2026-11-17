@@ -4,7 +4,7 @@ import pytest
 import torch
 
 import TD3 as td3_module
-from experiments.config import VARIANTS
+from experiments.config import AGENT_KWARGS, SANITY_CONFIGS, VARIANTS, td3_settings
 from TD3 import TD3
 from conftest import FakeEnv, params_equal, random_batch, snapshot
 
@@ -197,3 +197,38 @@ def test_learn_uses_gaussian_exploration_and_delay(monkeypatch):
     agent = TD3(FakeEnv(max_steps=10, p_terminate=0.0), replay_size=1000, batch_size=8)
     agent.learn(60)
     assert agent.critic_updates == 52 and agent.actor_updates == 26
+
+
+# ---------- prova de control fora de protocol (config.SANITY_CONFIGS) ----------
+
+def _optim_settings(agent):
+    return {name: (opt.defaults["lr"], opt.defaults["weight_decay"])
+            for name, opt in (("critic", agent.optim_dqn), ("critic2", agent.optim_critic2), ("actor", agent.optim_actor))}
+
+
+def test_default_hyperparameters_are_the_skeleton_ones():
+    agent = make_agent()
+    assert agent.tau == 0.001
+    assert _optim_settings(agent) == {"critic": (1e-3, 0.01), "critic2": (1e-3, 0.01), "actor": (1e-4, 0)}
+
+
+@pytest.mark.parametrize("name", list(SANITY_CONFIGS))
+def test_sanity_configs_change_only_declared_hyperparameters(name):
+    switches, kwargs, random_start = td3_settings(name)
+    assert switches == VARIANTS["full"]
+    torch.manual_seed(0)
+    agent = TD3(FakeEnv(), **{**kwargs, "replay_size": 1000}, **switches)
+    overrides = SANITY_CONFIGS[name]["agent"]
+    assert agent.tau == overrides.get("tau", 0.001)
+    assert agent.batch_size == overrides.get("batch_size", 64)
+    settings = _optim_settings(agent)
+    assert settings["critic"] == settings["critic2"] == (overrides.get("critic_lr", 1e-3),
+                                                          overrides.get("critic_weight_decay", 0.01))
+    assert settings["actor"] == (overrides.get("actor_lr", 1e-4), 0)
+    assert random_start == SANITY_CONFIGS[name]["random_start_steps"]
+
+
+def test_study_variants_keep_skeleton_settings():
+    for name in VARIANTS:
+        _, kwargs, random_start = td3_settings(name)
+        assert kwargs == AGENT_KWARGS and random_start == 0

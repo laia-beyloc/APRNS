@@ -2,7 +2,7 @@
 import json
 
 from experiments import launch
-from experiments.config import VARIANTS, ExperimentConfig
+from experiments.config import SANITY_CONFIGS, VARIANTS, ExperimentConfig
 
 
 def make_run(results, job, completed):
@@ -47,3 +47,13 @@ def test_skips_completed_and_continues_incomplete(tmp_path, monkeypatch):
     assert ("ddpg", 0) not in names                      # completada: se salta
     assert ("full", 0) in names and ("full", 1) in names  # incompleta: es continua
     assert len(launched) == 1 + 4 * 2 - 1
+
+
+def test_sanity_configs_only_when_named(tmp_path):
+    seeds = (0, 1)
+    assert not {j.name for j in launch.default_jobs(seeds)} & set(SANITY_CONFIGS)
+    jobs = launch.default_jobs(seeds, ["td3_paper"])
+    assert jobs == [launch.Job("td3", "td3_paper", 0), launch.Job("td3", "td3_paper", 1)]
+    cmd = launch.build_command(jobs[0], tmp_path, [])
+    assert cmd[cmd.index("--variant") + 1] == "td3_paper"
+
