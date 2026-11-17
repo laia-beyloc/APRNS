@@ -1,0 +1,5 @@
+variant,mean_last,median_last,iqm_last,mean_auc,iqm_auc,mean_success,mean_hover,seeds_majority_landing
+full,-51.3,-58.2,-55.8,-115.2,-121.1,0.020,0.650,0
+no_minimum,55.4,52.8,53.6,-45.8,-54.6,0.276,0.250,4
+no_smoothing,-54.6,-80.3,-81.3,-95.6,-101.4,0.070,0.700,1
+no_delay,19.7,-27.7,-14.4,-86.8,-87.5,0.178,0.570,2
