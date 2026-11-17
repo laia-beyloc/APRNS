@@ -15,3 +15,8 @@ venv/
 # Logs de les execucions (les mesures són als CSV/JSON)
 *.log
 launch.out
+# Fitxers comprimits (còpies de resultats i checkpoints de les VM; el zip del lliurament es fa a part)
+*.tgz
+*.tar
+*.tar.gz
+*.zip
