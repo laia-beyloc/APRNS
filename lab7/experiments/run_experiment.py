@@ -9,7 +9,9 @@ Exemples:
     python -m experiments.run_experiment --algo td3 --variant full --seed 2 --continue
 
 Resultat: <results>/<variant>/seed_<n>/ amb config.json, evaluations.csv,
-train_episodes.csv i, a TD3 complet, checkpoint.pt (branca de l'apartat 4).
+train_episodes.csv i, a TD3 complet, checkpoint.pt (branca de l'apartat 4). En acabar
+es desen final_model.pt (xarxes finals) i final_evaluation.csv (avaluació final amb
+llavors noves).
 Durant l'execució es manté checkpoint_latest.pt (represa després d'un tall; s'esborra
 en acabar). Els .pt els ignora git.
 """
@@ -31,6 +33,8 @@ from experiments.config import (AGENT_KWARGS, ENV_ID, SANITY_CONFIGS, TARGET_NOI
 CHECKPOINT_VARIANTS = ("full",)
 CHECKPOINT_NAME = "checkpoint.pt"
 LATEST_CHECKPOINT_NAME = "checkpoint_latest.pt"
+FINAL_MODEL_NAME = "final_model.pt"
+FINAL_EVALUATION_CSV = "final_evaluation.csv"
 
 
 def parse_args(argv=None) -> argparse.Namespace:
@@ -46,6 +50,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     parser.add_argument("--device", choices=("cpu", "auto"), default=defaults.device)
     parser.add_argument("--threads", type=int, default=defaults.num_threads)
     parser.add_argument("--results", type=Path, default=defaults.results_dir)
+    parser.add_argument("--final-eval-episodes", type=int, default=defaults.final_eval_episodes,
+                        help="episodis de l'avaluació final de la política (0 la desactiva)")
     parser.add_argument("--resume", type=Path, default=None, help="checkpoint de TD3 complet de la mateixa llavor")
     parser.add_argument("--continue", dest="continue_run", action="store_true",
                         help="si la carpeta ja existeix i no està completada, la continua des del seu checkpoint")
@@ -81,7 +87,7 @@ def _run(args: argparse.Namespace) -> Path:
     random_start = td3_settings(args.variant)[2] if args.algo == "td3" else 0
     cfg = ExperimentConfig(total_steps=args.steps, eval_every=args.eval_every, eval_episodes=args.eval_episodes,
                            results_dir=args.results, device=args.device, num_threads=args.threads,
-                           random_start_steps=random_start)
+                           random_start_steps=random_start, final_eval_episodes=args.final_eval_episodes)
     torch.set_num_threads(cfg.num_threads)
     seed_everything(args.seed)
     env = gym.make(ENV_ID, continuous=True)
@@ -109,6 +115,8 @@ def _run(args: argparse.Namespace) -> Path:
     start = time.time()
     final = train(agent, env, eval_env, noise, cfg, records, args.seed, state=state,
                   on_episode_end=lambda loop_state: [hook(loop_state) for hook in hooks])
+    if cfg.final_eval_episodes > 0:
+        records.write_config(final_evaluation=final_evaluation(agent, eval_env, cfg, run_dir))
     records.write_config(completed=True, final_step=final.step, train_episodes=final.episode,
                          critic_updates=agent.critic_updates, actor_updates=agent.actor_updates,
                          wall_time_s=round(time.time() - start, 1))  # del darrer tram si s'ha continuat
@@ -116,6 +124,36 @@ def _run(args: argparse.Namespace) -> Path:
     env.close()
     eval_env.close()
     return run_dir
+
+
+def final_evaluation(agent, eval_env, cfg: ExperimentConfig, run_dir: Path) -> dict:
+    """Desa les xarxes finals i avalua la política final en cfg.final_eval_episodes episodis.
+
+    Les llavors són noves (disjuntes de les de l'avaluació periòdica), així que mesura la
+    política en condicions inicials no vistes durant el seguiment. Escriu un CSV per
+    episodi i retorna el resum que es desa a config.json.
+    """
+    import csv
+
+    import numpy as np
+
+    from experiments.checkpoint import save_final_model
+    from experiments.diagnostics import overestimation_bias
+    from experiments.evaluation import run_evaluation_episodes
+
+    save_final_model(run_dir / FINAL_MODEL_NAME, agent)
+    seeds = cfg.final_eval_seeds()
+    traces = run_evaluation_episodes(agent, eval_env, seeds)
+    returns = np.array([t.episode_return for t in traces])
+    lengths = np.array([len(t.rewards) for t in traces])
+    truncated = np.array([t.truncated for t in traces])
+    with (run_dir / FINAL_EVALUATION_CSV).open("w", newline="", encoding="utf-8") as stream:
+        writer = csv.writer(stream)
+        writer.writerow(["eval_seed", "return", "length", "truncated"])
+        writer.writerows(zip(seeds, returns.tolist(), lengths.tolist(), truncated.tolist()))
+    return {"episodes": len(traces), "mean_return": float(returns.mean()), "std_return": float(returns.std()),
+            "success_rate": float(np.mean(returns >= 200)), "truncated_rate": float(truncated.mean()),
+            **overestimation_bias(agent, traces, agent.gamma, cfg.bias_min_horizon)}
 
 
 def _reopen_interrupted(run_dir: Path, latest: Path, agent, env, records_cls, load_checkpoint):

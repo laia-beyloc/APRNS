@@ -6,9 +6,9 @@ import pytest
 
 pytest.importorskip("Box2D")
 
-from experiments.run_experiment import CHECKPOINT_NAME, main
+from experiments.run_experiment import CHECKPOINT_NAME, FINAL_EVALUATION_CSV, FINAL_MODEL_NAME, main
 
-STEPS = ["--steps", "2000", "--eval-every", "1000", "--eval-episodes", "1"]
+STEPS = ["--steps", "2000", "--eval-every", "1000", "--eval-episodes", "1", "--final-eval-episodes", "2"]
 
 
 def _evaluations(run_dir):
@@ -28,6 +28,10 @@ def test_smoke_ddpg_td3_and_branch(tmp_path):
         assert [r["transitions"] for r in rows] == ["1000", "2000"]
         assert rows[-1]["bias_s0"] != ""   # el diagnòstic de sobreestimació s'ha calculat
     assert (full_dir / CHECKPOINT_NAME).exists()
+    for run_dir in (ddpg_dir, full_dir):   # política final desada i avaluada amb llavors noves
+        config = json.loads((run_dir / "config.json").read_text(encoding="utf-8"))
+        assert (run_dir / FINAL_MODEL_NAME).exists() and config["final_evaluation"]["episodes"] == 2
+        assert len((run_dir / FINAL_EVALUATION_CSV).read_text(encoding="utf-8").splitlines()) == 3
 
     branch_dir = main(["--algo", "td3", "--variant", "no_minimum", "--seed", "0", *STEPS,
                        "--results", str(tmp_path / "branched"), "--resume", str(full_dir / CHECKPOINT_NAME)])

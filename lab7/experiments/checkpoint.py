@@ -59,6 +59,14 @@ def load_checkpoint(path: Path, agent, env) -> LoopState:
     return payload["loop_state"]
 
 
+def save_final_model(path: Path, agent) -> None:
+    """Desa només les xarxes de l'agent en acabar (sense memòria ni optimitzadors): permet
+    reavaluar la política final o gravar-ne vídeos sense tornar a entrenar."""
+    tmp = Path(str(path) + ".tmp")
+    torch.save({name: obj.state_dict() for name, obj in vars(agent).items() if isinstance(obj, nn.Module)}, tmp)
+    os.replace(tmp, path)
+
+
 class CheckpointAtStep:
     """Callback per a train(): desa un sol checkpoint a la primera frontera d'episodi ≥ at_step."""
 

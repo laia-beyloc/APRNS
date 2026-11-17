@@ -68,6 +68,8 @@ class ExperimentConfig:
     bias_min_horizon: int = 300         # passos mínims per davant per fiar-se de G_t si l'episodi es trunca
     summary_last_n: int = 10            # mètrica resum pre-registrada: mitjana de les últimes N avaluacions
     random_start_steps: int = 0         # passos inicials amb accions uniformes (sense aprendre); 0 a l'estudi
+    final_eval_episodes: int = 100      # avaluació final de la política en acabar (llavors noves)
+    final_eval_seed_base: int = 20_000  # disjuntes de les d'avaluació periòdica
     results_dir: Path = field(default_factory=lambda: Path("results"))
     device: str = "cpu"                 # "cpu" força CPU (paral·lelització per processos)
     num_threads: int = 1
@@ -75,3 +77,7 @@ class ExperimentConfig:
     def eval_seeds(self) -> list:
         """Llavors dels episodis d'avaluació (iguals a cada avaluació i a cada execució)."""
         return [self.eval_seed_base + i for i in range(self.eval_episodes)]
+
+    def final_eval_seeds(self) -> list:
+        """Llavors de l'avaluació final (una per episodi)."""
+        return [self.final_eval_seed_base + i for i in range(self.final_eval_episodes)]
