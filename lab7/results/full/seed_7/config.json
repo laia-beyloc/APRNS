@@ -1,0 +1,87 @@
+{
+  "algorithm": "td3",
+  "variant": "full",
+  "switches": {
+    "use_minimum": true,
+    "target_noise": 0.2,
+    "policy_delay": 2
+  },
+  "seed": 7,
+  "env_id": "LunarLander-v3",
+  "experiment": {
+    "total_steps": 300000,
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "eval_every": 1000,
+    "eval_episodes": 5,
+    "eval_seed_base": 10000,
+    "checkpoint_fraction": 0.3333333333333333,
+    "checkpoint_every": 25000,
+    "bias_min_horizon": 300,
+    "summary_last_n": 10,
+    "results_dir": "results",
+    "device": "cpu",
+    "num_threads": 1
+  },
+  "eval_seeds": [
+    10000,
+    10001,
+    10002,
+    10003,
+    10004
+  ],
+  "agent_kwargs": {
+    "replay_size": 1000000,
+    "batch_size": 64,
+    "gamma": 0.99
+  },
+  "tau": 0.001,
+  "optimizers": {
+    "optim_dqn": {
+      "lr": 0.001,
+      "weight_decay": 0.01
+    },
+    "optim_critic2": {
+      "lr": 0.001,
+      "weight_decay": 0.01
+    },
+    "optim_actor": {
+      "lr": 0.0001,
+      "weight_decay": 0
+    }
+  },
+  "exploration": {
+    "type": "NormalActionNoise",
+    "_sigma": 0.1
+  },
+  "target_noise_clip": 0.5,
+  "resumed_from": null,
+  "versions": {
+    "python": "3.12.3",
+    "torch": "2.15.0+cpu",
+    "gymnasium": "1.3.0",
+    "numpy": "2.4.6"
+  },
+  "device": "cpu",
+  "threads": 1,
+  "command": "/home/azureuser/APRNS/lab7/experiments/run_experiment.py --algo td3 --seed 7 --threads 1 --device cpu --results results --continue --variant full",
+  "started": "2026-11-14 21:50:26",
+  "branch_step": 0,
+  "checkpoint_step": 100162,
+  "completed": true,
+  "final_step": 300000,
+  "train_episodes": 684,
+  "critic_updates": 299936,
+  "actor_updates": 149968,
+  "wall_time_s": 24502.5
+}
