@@ -20,3 +20,5 @@ launch.out
 *.tar
 *.tar.gz
 *.zip
+# Fitxers auxiliars de compilació de l'informe
+informe/.build/
