@@ -1,7 +1,6 @@
-"""Twin Delayed DDPG (TD3), apartat 3 i figura 5 de l'enunciat.
+"""Twin Delayed DDPG (TD3)
 
-L'enunciat demana implementar TD3 en una CÒPIA de DDPG.py anomenada TD3.py; per
-això la classe agent és una còpia (l'única duplicació acceptada del projecte) i
+Com es demana implementar TD3 en una CÒPIA de DDPG.py anomenada TD3.py, la classe agent és una còpia i
 no una subclasse. Canvis respecte de DDPG:
   1. suavitzat de la política objectiu (3.1.1),
   2. dos crítics amb el mínim al target i l'actor sobre Q1 (3.1.2),
