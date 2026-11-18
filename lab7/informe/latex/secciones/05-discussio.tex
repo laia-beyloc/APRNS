@@ -1,0 +1,43 @@
+\section{Discussió}\label{sec:discussio}
+
+\subsection{El planeig}\label{sec:planeig}
+
+A TD3 complet, el 65~\% de les últimes avaluacions tenen els cinc episodis truncats als 1.000 passos (Taula~\ref{tbl:ablacio}): el mòdul no s'estavella ni arriba a repòs. Les xarxes finals de l'estudi principal no es van desar, i el comportament concret el vam mesurar amb les de la prova de control (secció~\ref{sec:control}), en 20 episodis per a cadascuna de les seves 10 execucions. Dels 200 episodis, 143 es van truncar. En els seus últims 200 passos, el mòdul era per sobre del terra en el 88~\% dels casos (\emph{y} normalitzada de 0,38 de mitjana, on 0 és l'alçada de la plataforma). Les dues potes tocaven terra l'1,6~\% del temps, la velocitat vertical era de 0,021 i el motor principal estava encès en el 73~\% dels passos.
+
+La recompensa de LunarLander fa que aquest comportament sigui estable \parencite{gymnasium}. Cada pas amb el motor principal encès costa fins a 0,3 punts, i planejar fins al límit acaba en un retorn moderadament negatiu (−42,4 de mitjana en aquests episodis), mentre que un aterratge fallit suma −100. Aterrar dona +100, però abans cal passar per estats propers al terra en què una acció dolenta porta al xoc. Si aquests estats apareixen poc a la memòria de repetició i el crític els valora malament, és d'esperar que l'actor, que segueix el gradient de $Q_1$, es quedi planejant. Les dades no permeten verificar aquest mecanisme directament.
+
+\subsection{Què canvia cada mecanisme}\label{sec:mecanismes}
+
+A l'ablació, treure el mínim fa aparèixer la sobreestimació (de −6,4 a +32,2) i és el canvi que més millora el retorn, tot i que la diferència no supera la correcció de Holm. Seria temptador concloure que el pessimisme del mínim provoca el planeig, però les dades no ho sostenen. Dins de cada variant, més biaix tendeix a anar amb menys retorn: la llavor 3 de sense mínim, per exemple, és la que més episodis resol (76~\%) i té un biaix de 0,1. A més, amb les llavors 0--4, treure el \emph{weight decay} també fa sobreestimar en les cinc llavors (mediana +10,0; la mitjana, +26,1, la puja una llavor amb +91,3). Tot i així, només resol el 6,8~\% dels episodis, davant el 28,4~\% de sense mínim (Taula~\ref{tbl:control}). L'efecte del mínim sobre l'aterratge, per tant, no sembla explicar-se pel nivell mitjà del biaix; que depengui del valor que assigna a estats concrets, com els propers al terra, és una hipòtesi que no hem comprovat.
+
+El suavitzat no té cap efecte clar, ni en el retorn ni en el biaix (−2,2 davant −6,4). Treure el retard duplica les actualitzacions de l'actor (299.936 en lloc de 149.968) i allarga cada execució un 18~\% (8,0~h davant 6,8~h). El seu biaix tendeix a ser més negatiu, sense contrast que ho confirmi, i la millora de la mitjana depèn de dues llavors.
+
+\subsection{Prova de control}\label{sec:control}
+
+Com que TD3 complet no aterra, vam comprovar que no fos per un error d'implementació amb una prova fora del protocol, amb les llavors 0--4 i les xarxes finals desades. La configuració \emph{td3\_paper} aplica a les xarxes de l'esquelet els hiperparàmetres de la taula 3 de \textcite{fujimoto2018}. Són $\tau = 0{,}005$, una taxa d'aprenentatge de $10^{-3}$ a l'actor i als crítics, cap \emph{weight decay}, lots de 100 i 10.000 passos inicials d'accions uniformes sense aprendre. \emph{Sense weight decay} només treu el \emph{weight decay} dels crítics. Cada execució s'avalua també al final, en 100 episodis amb llavors noves.
+
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption{Prova de control fora del protocol, llavors 0--4 (mitjana entre llavors); columnes L10 a Biaix com a la Taula~\ref{tbl:ablacio}. TD3 complet i sense mínim provenen de l'estudi principal i no tenen avaluació final. Final: política final en 100 episodis amb llavors noves; truncats: episodis que arriben als 1.000 passos.}
+  \label{tbl:control}
+  \setlength{\tabcolsep}{4pt}
+  \begin{tabular}{lrrrrrrrr}
+    \toprule
+    & & & & & & \multicolumn{3}{c}{Final} \\
+    \cmidrule(l){7-9}
+    Configuració & L10 & AUC/T & Resolts & Truncades & Biaix & Retorn & Resolts & Truncats \\
+    \midrule
+    TD3 complet & −64,4 & −129,2 & 0,0~\% & 66~\% & −4,5 & --- & --- & --- \\
+    Sense mínim & 55,9 & −65,4 & 28,4~\% & 26~\% & +24,3 & --- & --- & --- \\
+    td3\_paper & 67,8 & −31,6 & 29,2~\% & 48~\% & −12,2 & 64,3 & 26,8~\% & 65,2~\% \\
+    Sense \emph{weight decay} & −47,7 & −80,2 & 6,8~\% & 62~\% & +26,1 & −53,4 & 6,4~\% & 79,8~\% \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+Amb td3\_paper, la llavor 3 resol l'entorn: 269,7 punts de mitjana a l'avaluació final i el 98~\% d'episodis resolts. La implementació, doncs, pot aprendre a aterrar. Les llavors 0, 2 i 4, en canvi, continuen planejant (entre el 83~\% i el 100~\% d'episodis truncats a l'avaluació final), de manera que el planeig no depèn només dels hiperparàmetres de l'enunciat. Treure el \emph{weight decay} fa pujar el biaix en les cinc llavors: el \emph{weight decay} contribueix a la lleugera infraestimació de TD3 complet, però treure'l no redueix el planeig. L'avaluació final és del mateix ordre que la L10 a cada llavor (per exemple, 269,7 davant 274,0 i 87,6 davant 102,8), cosa que suggereix que les cinc condicions inicials fixes de l'avaluació periòdica no en distorsionen gaire el resultat. Amb cinc parells, el test exacte no pot donar $p < 0{,}0625$, i aquesta prova és un diagnòstic, no un contrast d'hipòtesis.
+
+\subsection{Limitacions}\label{sec:limitacions}
+
+Amb més llavors o més pressupost les conclusions de l'ablació podrien canviar, perquè cap diferència supera la correcció de Holm i dues corbes encara pugen a $T$. La comparació DDPG--TD3 té les limitacions de la secció~\ref{sec:ddpg}. Part de la configuració ve de l'esquelet: LayerNorm (l'enunciat parla de \emph{batch normalization}), una inicialització que usa el nombre de sortides de cada capa en lloc del d'entrades i el \emph{weight decay} als crítics de TD3, que l'article de TD3 no fa servir. El biaix es mesura sobre els estats de cada política i per a $\mu$, mentre que el crític aprèn el valor de la política suavitzada.

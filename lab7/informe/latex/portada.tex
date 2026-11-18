@@ -1,0 +1,34 @@
+% Portada. Los datos se definen en main.tex.
+\begin{titlepage}
+  \centering
+  \ifdefined\logo
+    \includegraphics[height=2.2cm,keepaspectratio]{\logo}\par
+    \vspace{1.2cm}
+  \else
+    \vspace*{1.5cm}
+  \fi
+
+  {\large \centro\par}
+  {\large \universidad\par}
+  \vspace{0.4cm}
+  {\normalsize \grado\par}
+
+  \vfill
+
+  {\large \asignatura\par}
+  \vspace{0.6cm}
+  {\Large \practica\par}
+  \vspace{0.3cm}
+  {\LARGE\bfseries \titulo\par}
+
+  \vfill
+
+  {\large \autores\par}
+  \vspace{0.6cm}
+  {\normalsize \etiquetagrupo\ \grupo\par}
+
+  \vspace{1.5cm}
+
+  {\normalsize \etiquetacurso: \curso\par}
+  {\normalsize \fecha\par}
+\end{titlepage}

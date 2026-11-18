@@ -1,0 +1,93 @@
+\documentclass[11pt,a4paper]{article}
+
+% ---------- Tipografía y página ----------
+\usepackage[T1]{fontenc}     % abans de babel: el català necessita T1 per partir bé les paraules
+
+% ---------- Idioma: dejar UNA línea (ver references/latex.md) ----------
+\usepackage[catalan]{babel}
+
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[a4paper,margin=2cm]{geometry}
+\usepackage{icomma}          % coma decimal en fórmulas: $0,5$
+\usepackage{newunicodechar}  % signes del text com al Markdown
+\newunicodechar{−}{\ensuremath{-}}
+\newunicodechar{±}{\ensuremath{\pm}}
+\newunicodechar{Δ}{\ensuremath{\Delta}}
+\newunicodechar{≥}{\ensuremath{\geq}}
+\usepackage{csquotes}
+\setlength{\parskip}{0.4em}
+
+% ---------- Contenido ----------
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\graphicspath{{img/}}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf}
+\usepackage{xcolor}
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\small,
+  breaklines=true,
+  frame=single,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  commentstyle=\color{gray},
+  keywordstyle=\bfseries,
+  literate={á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+           {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+           {à}{{\`a}}1 {è}{{\`e}}1 {ò}{{\`o}}1 {ï}{{\"i}}1 {ü}{{\"u}}1
+           {ñ}{{\~n}}1 {Ñ}{{\~N}}1 {ç}{{\c c}}1 {Ç}{{\c C}}1 {·}{{$\cdot$}}1
+}
+
+% ---------- Bibliografía (APA 7) ----------
+\usepackage[style=apa,backend=biber]{biblatex}
+\addbibresource{refs.bib}
+\DefineBibliographyStrings{catalan}{nodate = {s.\,d.}}  % «s. d.» en lloc de «s/ d»
+
+\usepackage[hidelinks]{hyperref}
+
+% ---------- Datos de la portada ----------
+\newcommand{\titulo}{Mètodes actor-crític \emph{off-policy}, DDPG i TD3}
+\newcommand{\practica}{Pràctica 7}
+\newcommand{\asignatura}{Aprenentatge per Reforç i No Supervisat (APRNS)}
+\newcommand{\grado}{Grau en Inte\l.ligència Artificial}
+\newcommand{\centro}{Facultat d'Informàtica de Barcelona}
+\newcommand{\universidad}{Universitat Politècnica de Catalunya}
+\newcommand{\autores}{Laia Beyloc Guzmán \\ Ilyas Ouacham Rhailane}
+\newcommand{\etiquetagrupo}{Grup}
+\newcommand{\grupo}{11}
+\newcommand{\etiquetacurso}{Curs}
+\newcommand{\curso}{2026--2027, quadrimestre de tardor}
+\newcommand{\fecha}{\today}
+% Logo: solo si el usuario aporta el archivo. Descomentar y poner el nombre.
+% \newcommand{\logo}{logo.png}
+
+\begin{document}
+
+\input{portada}
+
+% Índice: solo si el informe es largo o se pide.
+% \tableofcontents
+% \newpage
+
+% Secciones (un archivo por sección de primer nivel)
+\input{secciones/01-implementacio}
+\input{secciones/02-protocol}
+\input{secciones/03-ddpg}
+\input{secciones/04-resultats}
+\input{secciones/05-discussio}
+\input{secciones/06-conclusions}
+
+\printbibliography
+
+% Anexos
+% \appendix
+% \input{secciones/A-anexo}
+
+\end{document}

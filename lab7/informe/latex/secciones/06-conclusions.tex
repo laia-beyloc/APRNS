@@ -1,0 +1,3 @@
+\section{Conclusions}\label{sec:conclusions}
+
+A l'ablació, treure el mínim fa aparèixer una sobreestimació semblant a la de DDPG. Amb els hiperparàmetres fixats i $T = 300.000$, cap variant resol LunarLander en mitjana: en tres de les quatre, més de la meitat de les últimes avaluacions tenen els cinc episodis truncats, i a les xarxes de la prova de control el mòdul hi planeja. Treure el mínim tendeix a millorar el retorn i els episodis resolts, sense significació amb deu llavors; el suavitzat i el retard no tenen cap efecte clar. La implementació pot resoldre l'entorn, i el planeig persisteix amb els hiperparàmetres de l'article de TD3. El pas següent seria mesurar el biaix en els estats propers al terra, per entendre per què el mínim afecta l'aterratge.
