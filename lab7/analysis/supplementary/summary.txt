@@ -1,0 +1,39 @@
+metric,variant,mean_diff,median_diff,wins_of_10,perm_p,holm_p
+last,no_minimum,106.631,146.265,8,0.0293,0.0879
+last,no_smoothing,-3.375,-11.190,4,0.9023,0.9023
+last,no_delay,70.934,15.024,8,0.0762,0.1523
+auc,no_minimum,69.386,96.976,8,0.0352,0.1055
+auc,no_smoothing,19.604,17.205,7,0.3086,0.3203
+auc,no_delay,28.414,15.715,8,0.1602,0.3203
+succ,no_minimum,0.256,0.080,5,0.0625,0.1875
+succ,no_smoothing,0.050,0.000,2,0.8750,0.8750
+succ,no_delay,0.158,0.000,4,0.3125,0.6250
+hover,no_minimum,-0.400,-0.350,2,0.0312,0.0938
+hover,no_smoothing,0.050,0.000,3,0.7812,1.0000
+hover,no_delay,-0.080,-0.050,2,0.6719,1.0000
+variant,mean_last,median_last,iqm_last,mean_auc,iqm_auc,mean_success,mean_hover,seeds_majority_landing
+full,-51.3,-58.2,-55.8,-115.2,-121.1,0.020,0.650,0
+no_minimum,55.4,52.8,53.6,-45.8,-54.6,0.276,0.250,4
+no_smoothing,-54.6,-80.3,-81.3,-95.6,-101.4,0.070,0.700,1
+no_delay,19.7,-27.7,-14.4,-86.8,-87.5,0.178,0.570,2
+Spearman biaix-retorn (40 exec.): -0.18067542213883678
+full Spearman intra-variant: -0.42
+no_minimum Spearman intra-variant: -0.71
+no_smoothing Spearman intra-variant: -0.24
+no_delay Spearman intra-variant: -0.72
+full caigudes>200: 17 [1, 1, 2, 4, 0, 3, 2, 1, 3, 0]  temps mitjà h: 6.82
+no_minimum caigudes>200: 73 [2, 1, 10, 7, 7, 0, 13, 17, 16, 0]  temps mitjà h: 6.81
+no_smoothing caigudes>200: 27 [2, 3, 1, 0, 9, 1, 1, 6, 4, 0]  temps mitjà h: 6.79
+no_delay caigudes>200: 22 [1, 0, 5, 0, 0, 2, 0, 10, 3, 1]  temps mitjà h: 8.03
+Prova de control (llavors [0, 1, 2, 3, 4]); amb n=5 el p exacte mínim és 0.0625
+config,metric,mean_full,mean_config,mean_diff,wins_of_n,n,perm_p
+td3_paper,last,-64.438,67.768,132.206,4,5,0.1250
+td3_paper,auc,-129.220,-31.632,97.588,5,5,0.0625
+td3_paper,succ,0.000,0.292,0.292,3,5,0.2500
+td3_paper,hover,0.660,0.480,-0.180,2,5,0.6250
+td3_paper,bias,-4.484,-12.215,-7.731,1,5,0.1875
+no_weight_decay,last,-64.438,-47.738,16.700,2,5,0.6875
+no_weight_decay,auc,-129.220,-80.164,49.056,5,5,0.0625
+no_weight_decay,succ,0.000,0.068,0.068,1,5,1.0000
+no_weight_decay,hover,0.660,0.620,-0.040,1,5,1.0000
+no_weight_decay,bias,-4.484,26.139,30.623,5,5,0.0625

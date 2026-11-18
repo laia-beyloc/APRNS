@@ -1,0 +1,11 @@
+config,metric,mean_full,mean_config,mean_diff,wins_of_n,n,perm_p
+td3_paper,last,-64.438,67.768,132.206,4,5,0.1250
+td3_paper,auc,-129.220,-31.632,97.588,5,5,0.0625
+td3_paper,succ,0.000,0.292,0.292,3,5,0.2500
+td3_paper,hover,0.660,0.480,-0.180,2,5,0.6250
+td3_paper,bias,-4.484,-12.215,-7.731,1,5,0.1875
+no_weight_decay,last,-64.438,-47.738,16.700,2,5,0.6875
+no_weight_decay,auc,-129.220,-80.164,49.056,5,5,0.0625
+no_weight_decay,succ,0.000,0.068,0.068,1,5,1.0000
+no_weight_decay,hover,0.660,0.620,-0.040,1,5,1.0000
+no_weight_decay,bias,-4.484,26.139,30.623,5,5,0.0625
