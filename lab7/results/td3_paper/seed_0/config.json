@@ -1,0 +1,111 @@
+{
+  "algorithm": "td3",
+  "variant": "td3_paper",
+  "switches": {
+    "use_minimum": true,
+    "target_noise": 0.2,
+    "policy_delay": 2
+  },
+  "sanity_check": {
+    "agent": {
+      "tau": 0.005,
+      "actor_lr": 0.001,
+      "critic_lr": 0.001,
+      "critic_weight_decay": 0.0,
+      "batch_size": 100
+    },
+    "random_start_steps": 10000
+  },
+  "seed": 0,
+  "env_id": "LunarLander-v3",
+  "experiment": {
+    "total_steps": 300000,
+    "seeds": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "eval_every": 1000,
+    "eval_episodes": 5,
+    "eval_seed_base": 10000,
+    "checkpoint_fraction": 0.3333333333333333,
+    "checkpoint_every": 25000,
+    "bias_min_horizon": 300,
+    "summary_last_n": 10,
+    "random_start_steps": 10000,
+    "final_eval_episodes": 100,
+    "final_eval_seed_base": 20000,
+    "results_dir": "results",
+    "device": "cpu",
+    "num_threads": 1
+  },
+  "eval_seeds": [
+    10000,
+    10001,
+    10002,
+    10003,
+    10004
+  ],
+  "agent_kwargs": {
+    "replay_size": 1000000,
+    "batch_size": 100,
+    "gamma": 0.99
+  },
+  "tau": 0.005,
+  "optimizers": {
+    "optim_dqn": {
+      "lr": 0.001,
+      "weight_decay": 0.0
+    },
+    "optim_critic2": {
+      "lr": 0.001,
+      "weight_decay": 0.0
+    },
+    "optim_actor": {
+      "lr": 0.001,
+      "weight_decay": 0
+    }
+  },
+  "exploration": {
+    "type": "NormalActionNoise",
+    "_sigma": 0.1
+  },
+  "target_noise_clip": 0.5,
+  "resumed_from": null,
+  "versions": {
+    "python": "3.12.3",
+    "torch": "2.15.0+cpu",
+    "gymnasium": "1.3.0",
+    "numpy": "2.4.6"
+  },
+  "device": "cpu",
+  "threads": 1,
+  "command": "/home/azureuser/APRNS/lab7/experiments/run_experiment.py --algo td3 --seed 0 --threads 1 --device cpu --results results --continue --variant td3_paper",
+  "started": "2026-11-17 21:55:56",
+  "branch_step": 0,
+  "final_evaluation": {
+    "episodes": 100,
+    "mean_return": -21.417982697525613,
+    "std_return": 20.92276220221025,
+    "success_rate": 0.0,
+    "truncated_rate": 1.0,
+    "bias_all": -4.519393413022388,
+    "bias_s0": -8.387965897232695,
+    "mean_q": -9.019463233573843,
+    "mean_g": -4.500069820551455,
+    "n_bias_states": 70100
+  },
+  "completed": true,
+  "final_step": 300000,
+  "train_episodes": 437,
+  "critic_updates": 290000,
+  "actor_updates": 145000,
+  "wall_time_s": 7270.7
+}
