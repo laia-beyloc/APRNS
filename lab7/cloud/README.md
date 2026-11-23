@@ -103,6 +103,16 @@ Amb 1 sola VM: `--seeds 0 1 2 3 4` (3 tandes, ~21–27 h). Estat: `python -m exp
 apartats 3 i 4 (el `tar` ja exclou els `.pt`; si es volen les xarxes finals per gravar vídeos,
 feu un segon `tar` de `results/*/seed_*/final_model.pt`).
 
+## 7. Segona ablació amb la configuració recomanada pel professor (40 execucions)
+Variants `prof_full`, `prof_no_minimum`, `prof_no_smoothing` i `prof_no_delay`: els mateixos
+interruptors de l'ablació sobre la base `PROF_BASE` de `experiments/config.py` (τ = 0,005,
+sense weight decay als crítics, inicialització de PyTorch als crítics i targets dels crítics
+fora del retard). Repartiment per llavors, com a l'estudi principal:
+```bash
+bash cloud/setup_linux.sh --workers 4 --seeds 0 1 2 3 4 --variants prof_full prof_no_minimum prof_no_smoothing prof_no_delay   # vm-es
+bash cloud/setup_linux.sh --workers 4 --seeds 5 6 7 8 9 --variants prof_full prof_no_minimum prof_no_smoothing prof_no_delay   # vm-be
+```
+
 ## A l'informe
 Cada `config.json` registra dispositiu i versions. Les dues VM són del mateix tipus, però en
 regions diferents (el model de CPU pot variar): cal declarar-ho.
