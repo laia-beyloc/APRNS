@@ -46,10 +46,23 @@ SANITY_CONFIGS = {
 }
 
 
+# Segona ablació amb la configuració base de TD3 que el professor va recomanar després de
+# publicar l'enunciat: τ = 0.005, sense weight decay als crítics, inicialització per
+# defecte de PyTorch als crítics i targets dels crítics fora del retard (el de l'actor
+# continua dins). La resta (xarxes, lr, batch, exploració, T) no canvia. Les variants
+# prof_<nom> apliquen els mateixos interruptors de VARIANTS sobre aquesta base.
+PROF_BASE = {"tau": 0.005, "critic_weight_decay": 0.0, "ddpg_critic_init": False,
+             "critic_targets_every_step": True}
+PROF_PREFIX = "prof_"
+PROF_VARIANTS = {PROF_PREFIX + name: switches for name, switches in VARIANTS.items()}
+
+
 def td3_settings(name: str) -> tuple:
     """(interruptors, arguments de l'agent, passos aleatoris inicials) d'una variant o prova de control."""
     if name in VARIANTS:
         return VARIANTS[name], dict(AGENT_KWARGS), 0
+    if name in PROF_VARIANTS:
+        return PROF_VARIANTS[name], {**AGENT_KWARGS, **PROF_BASE}, 0
     sanity = SANITY_CONFIGS[name]
     return VARIANTS["full"], {**AGENT_KWARGS, **sanity["agent"]}, sanity["random_start_steps"]
 

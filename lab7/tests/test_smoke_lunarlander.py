@@ -65,3 +65,11 @@ def test_smoke_sanity_config(tmp_path):
     assert config["experiment"]["random_start_steps"] == 10_000
     assert config["critic_updates"] == 0          # 2.000 passos < 10.000 passos aleatoris inicials
     assert not (run_dir / CHECKPOINT_NAME).exists()  # la branca de l'apartat 4 només és de "full"
+
+
+def test_smoke_prof_variant(tmp_path):
+    run_dir = main(["--algo", "td3", "--variant", "prof_no_delay", "--seed", "0", *STEPS, "--results", str(tmp_path)])
+    config = json.loads((run_dir / "config.json").read_text(encoding="utf-8"))
+    assert config["completed"] and config["tau"] == 0.005 and config["prof_base"]["critic_targets_every_step"]
+    assert config["switches"]["policy_delay"] == 1
+    assert config["optimizers"]["optim_dqn"]["weight_decay"] == 0.0

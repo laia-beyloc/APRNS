@@ -32,7 +32,8 @@ class TD3:
 
     def __init__(self, env, replay_size=1000000, batch_size=32, gamma=0.99,
                  use_minimum=True, target_noise=0.2, policy_delay=2, noise_clip=TARGET_NOISE_CLIP,
-                 tau=0.001, actor_lr=0.0001, critic_lr=0.001, critic_weight_decay=0.01):
+                 tau=0.001, actor_lr=0.0001, critic_lr=0.001, critic_weight_decay=0.01,
+                 ddpg_critic_init=True, critic_targets_every_step=False):
         """ Initializes the TD3 method.
 
         Parameters
@@ -56,6 +57,13 @@ class TD3:
         tau, actor_lr, critic_lr, critic_weight_decay: float
             Per defecte, els valors de l'esquelet (DDPG.py), que són els de l'estudi.
             Només la prova de control fora de protocol (config.SANITY_CONFIGS) els canvia.
+        ddpg_critic_init: bool
+            True: inicialització de [1] als crítics (initialize_weights). False: la de PyTorch
+            per defecte, com recomana el professor per a TD3 (config.PROF_BASE).
+        critic_targets_every_step: bool
+            False: els tres targets s'actualitzen dins del retard (enunciat, 3.1.3). True: els
+            targets dels crítics s'actualitzen a cada iteració i el de l'actor amb l'actor
+            (recomanació del professor).
         """
 
         self.obs_dim, self.act_dim = env.observation_space.shape[0], env.action_space.shape[0]
@@ -73,12 +81,15 @@ class TD3:
         # Dos crítics inicialitzats de manera independent (figura 5). La creació no
         # depèn dels interruptors: amb la mateixa llavor, totes les variants parteixen
         # exactament dels mateixos pesos.
+        self.critic_targets_every_step = critic_targets_every_step
         self.Critic = CriticNetwork(self.obs_dim, self.act_dim).to(device)
-        self.Critic.initialize_weights()
+        if ddpg_critic_init:
+            self.Critic.initialize_weights()
         self.Critic_target = CriticNetwork(self.obs_dim, self.act_dim).to(device)
         copy_target(self.Critic_target, self.Critic)
         self.Critic2 = CriticNetwork(self.obs_dim, self.act_dim).to(device)
-        self.Critic2.initialize_weights()
+        if ddpg_critic_init:
+            self.Critic2.initialize_weights()
         self.Critic2_target = CriticNetwork(self.obs_dim, self.act_dim).to(device)
         copy_target(self.Critic2_target, self.Critic2)
 
@@ -264,6 +275,9 @@ class TD3:
         self.optim_dqn.step()
         self.optim_critic2.step()
         self.critic_updates += 1
+        if self.critic_targets_every_step:
+            soft_update(self.Critic_target, self.Critic, self.tau)
+            soft_update(self.Critic2_target, self.Critic2, self.tau)
 
         metrics["actor_loss"] = None
         if self.critic_updates % self.policy_delay == 0:
@@ -272,8 +286,9 @@ class TD3:
             self.optim_actor.zero_grad()
             actor_loss.backward()
             self.optim_actor.step()
-            soft_update(self.Critic_target, self.Critic, self.tau)
-            soft_update(self.Critic2_target, self.Critic2, self.tau)
+            if not self.critic_targets_every_step:
+                soft_update(self.Critic_target, self.Critic, self.tau)
+                soft_update(self.Critic2_target, self.Critic2, self.tau)
             soft_update(self.Actor_target, self.Actor, self.tau)
             self.actor_updates += 1
             metrics["actor_loss"] = actor_loss.item()

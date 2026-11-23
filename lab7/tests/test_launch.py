@@ -2,7 +2,7 @@
 import json
 
 from experiments import launch
-from experiments.config import SANITY_CONFIGS, VARIANTS, ExperimentConfig
+from experiments.config import PROF_VARIANTS, SANITY_CONFIGS, VARIANTS, ExperimentConfig
 
 
 def make_run(results, job, completed):
@@ -57,3 +57,9 @@ def test_sanity_configs_only_when_named(tmp_path):
     cmd = launch.build_command(jobs[0], tmp_path, [])
     assert cmd[cmd.index("--variant") + 1] == "td3_paper"
 
+
+
+def test_prof_variants_only_when_named():
+    assert not {j.name for j in launch.default_jobs((0, 1))} & set(PROF_VARIANTS)
+    jobs = launch.default_jobs((5, 6), list(PROF_VARIANTS))
+    assert len(jobs) == 2 * len(PROF_VARIANTS) and {j.name for j in jobs} == set(PROF_VARIANTS)

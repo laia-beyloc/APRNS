@@ -4,7 +4,7 @@ import pytest
 import torch
 
 import TD3 as td3_module
-from experiments.config import AGENT_KWARGS, SANITY_CONFIGS, VARIANTS, td3_settings
+from experiments.config import AGENT_KWARGS, PROF_BASE, PROF_VARIANTS, SANITY_CONFIGS, VARIANTS, td3_settings
 from TD3 import TD3
 from conftest import FakeEnv, params_equal, random_batch, snapshot
 
@@ -232,3 +232,34 @@ def test_study_variants_keep_skeleton_settings():
     for name in VARIANTS:
         _, kwargs, random_start = td3_settings(name)
         assert kwargs == AGENT_KWARGS and random_start == 0
+
+
+# ---------- segona ablació: configuració base recomanada pel professor (config.PROF_BASE) ----------
+
+def test_prof_critic_targets_move_every_iteration_and_actor_target_with_delay():
+    agent = make_agent(policy_delay=2, critic_targets_every_step=True)
+    nets = (agent.Critic_target, agent.Critic2_target, agent.Actor_target)
+    before = _targets(agent)
+    agent.update(random_batch(16, seed=1))                    # iteració 1: crítics i els seus targets
+    assert _changed(before, nets) == [True, True, False]
+    agent.update(random_batch(16, seed=2))                    # iteració 2: també l'actor i el seu target
+    assert _changed(before, nets) == [True, True, True]
+
+
+def test_prof_critics_keep_pytorch_default_init():
+    ddpg_init, default_init = make_agent(), make_agent(ddpg_critic_init=False)
+    # La inicialització de [1] posa la capa final a ±0,003; la de PyTorch és molt més ampla.
+    assert ddpg_init.Critic.l4.weight.abs().max() <= 0.003
+    assert default_init.Critic.l4.weight.abs().max() > 0.003
+    assert default_init.Critic2.l4.weight.abs().max() > 0.003
+
+
+@pytest.mark.parametrize("name", list(PROF_VARIANTS))
+def test_prof_variants_apply_base_and_only_their_switch(name):
+    switches, kwargs, random_start = td3_settings(name)
+    assert switches == VARIANTS[name.removeprefix("prof_")] and random_start == 0
+    assert kwargs == {**AGENT_KWARGS, **PROF_BASE}
+    torch.manual_seed(0)
+    agent = TD3(FakeEnv(), **{**kwargs, "replay_size": 1000}, **switches)
+    assert agent.tau == 0.005 and agent.critic_targets_every_step
+    assert _optim_settings(agent) == {"critic": (1e-3, 0.0), "critic2": (1e-3, 0.0), "actor": (1e-4, 0)}
