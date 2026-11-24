@@ -4,6 +4,7 @@ Només numpy/matplotlib. No genera text de discussió: això ho escriu l'usuari.
 Només s'usen execucions amb config.json["completed"] == True.
 
 Ús (des de lab7/):  python -m analysis.analysis --results results --out analysis
+        segona ablació:  python -m analysis.analysis --study prof --out analysis/prof
 """
 import argparse
 import csv
@@ -16,7 +17,10 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-from experiments.config import VARIANTS, ExperimentConfig
+from experiments.config import PROF_VARIANTS, VARIANTS, ExperimentConfig
+
+# Estudi -> (variants, referència de les diferències aparellades)
+STUDIES = {"main": (list(VARIANTS), "full"), "prof": (list(PROF_VARIANTS), "prof_full")}
 
 BOOTSTRAP_SEED = 12345
 DIAGNOSTICS = ("bias_all", "bias_s0", "critic_disagreement", "min_reduction")
@@ -201,7 +205,8 @@ def plot_exploratory(runs: dict, path: Path, seed: int = 0) -> list:
     return rows
 
 
-def plot_estimates(per_run: list, summary: list, paired: list, path: Path) -> None:
+def plot_estimates(per_run: list, summary: list, paired: list, path: Path,
+                   baseline: str = "full") -> None:
     """Mètriques per variant (punts per llavor + IC) i diferències aparellades."""
     fig, axes = plt.subplots(2, 2, figsize=(9, 6))
     for col, metric in enumerate(METRICS):
@@ -222,7 +227,7 @@ def plot_estimates(per_run: list, summary: list, paired: list, path: Path) -> No
         ax.axhline(0, color="k", lw=0.8)
         ax.set_xticks(range(len(sub)))
         ax.set_xticklabels([r["variant"] for r in sub])
-        ax.set(title=f"{metric}: variant − full")
+        ax.set(title=f"{metric}: variant − {baseline}")
     save(fig, path)
 
 
@@ -237,17 +242,19 @@ def save(fig, path: Path) -> None:
 # ---------------------------------------------------------------- principal
 
 def run_analysis(results_dir: Path, out_dir: Path, n_boot: int = 10_000,
-                 seed: int = BOOTSTRAP_SEED) -> None:
+                 seed: int = BOOTSTRAP_SEED, study: str = "main") -> None:
     """Genera totes les figures i taules a out_dir/figures i out_dir/tables."""
     cfg = ExperimentConfig()
     rng = np.random.default_rng(seed)
     figures, tables = Path(out_dir) / "figures", Path(out_dir) / "tables"
     runs = load_runs(results_dir)
-    variants = [v for v in VARIANTS if v in runs]
+    study_variants, baseline = STUDIES[study]
+    variants = [v for v in study_variants if v in runs]
 
-    explo = plot_exploratory(runs, figures / "exploratory_ddpg_vs_td3.png")
-    if explo:
-        write_table(tables / "exploratory_ddpg_vs_td3.csv", explo)
+    if study == "main":  # la comparació DDPG–TD3 només és de l'estudi principal
+        explo = plot_exploratory(runs, figures / "exploratory_ddpg_vs_td3.png")
+        if explo:
+            write_table(tables / "exploratory_ddpg_vs_td3.csv", explo)
     if not variants:
         return
 
@@ -258,12 +265,13 @@ def run_analysis(results_dir: Path, out_dir: Path, n_boot: int = 10_000,
 
     per_run = per_run_table(runs, variants, cfg.summary_last_n, cfg.total_steps)
     summary = summary_table(per_run, n_boot, rng)
-    paired = paired_table(per_run, n_boot, rng)
+    paired = paired_table(per_run, n_boot, rng, baseline)
     write_table(tables / "metrics_per_run.csv", per_run)
     write_table(tables / "metrics_by_variant.csv", summary)
     if paired:
         write_table(tables / "paired_differences_vs_full.csv", paired)
-    plot_estimates(per_run, summary, paired, figures / "metrics_and_paired_differences.png")
+    plot_estimates(per_run, summary, paired, figures / "metrics_and_paired_differences.png",
+                   baseline)
 
     for column in DIAGNOSTICS:
         diag = curve_table(runs, variants, column, n_boot, rng)
@@ -278,8 +286,9 @@ def main() -> None:
     parser.add_argument("--out", type=Path, default=Path("analysis"))
     parser.add_argument("--n-boot", type=int, default=10_000)
     parser.add_argument("--seed", type=int, default=BOOTSTRAP_SEED)
+    parser.add_argument("--study", choices=list(STUDIES), default="main")
     args = parser.parse_args()
-    run_analysis(args.results, args.out, args.n_boot, args.seed)
+    run_analysis(args.results, args.out, args.n_boot, args.seed, args.study)
 
 
 if __name__ == "__main__":

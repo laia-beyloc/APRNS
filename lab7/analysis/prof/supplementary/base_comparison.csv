@@ -1,0 +1,30 @@
+comparison,metric,mean_diff,wins_of_10,perm_p
+prof_full - full,last,258.868,10,0.0020
+prof_full - full,auc,211.416,10,0.0020
+prof_full - full,succ,0.756,9,0.0039
+prof_full - full,hover,-0.520,0,0.0039
+prof_full - full,bias,-0.116,5,0.9648
+prof_no_minimum - no_minimum,last,138.427,8,0.0410
+prof_no_minimum - no_minimum,auc,151.065,9,0.0039
+prof_no_minimum - no_minimum,succ,0.460,8,0.0352
+prof_no_minimum - no_minimum,hover,-0.180,3,0.3125
+prof_no_minimum - no_minimum,bias,4.245,6,0.6738
+prof_no_smoothing - no_smoothing,last,250.841,9,0.0059
+prof_no_smoothing - no_smoothing,auc,178.991,9,0.0059
+prof_no_smoothing - no_smoothing,succ,0.702,8,0.0078
+prof_no_smoothing - no_smoothing,hover,-0.540,2,0.0391
+prof_no_smoothing - no_smoothing,bias,0.915,5,0.8516
+prof_no_delay - no_delay,last,224.991,10,0.0020
+prof_no_delay - no_delay,auc,202.689,10,0.0020
+prof_no_delay - no_delay,succ,0.722,9,0.0039
+prof_no_delay - no_delay,hover,-0.470,0,0.0156
+prof_no_delay - no_delay,bias,5.126,4,0.2188
+interaction no_minimum,last,-120.441,3,0.1074
+interaction no_minimum,auc,-60.351,4,0.2246
+interaction no_minimum,succ,-0.296,4,0.1465
+interaction no_smoothing,last,-8.028,4,0.9121
+interaction no_smoothing,auc,-32.425,4,0.4375
+interaction no_smoothing,succ,-0.054,6,0.9180
+interaction no_delay,last,-33.877,4,0.5898
+interaction no_delay,auc,-8.727,4,0.8281
+interaction no_delay,succ,-0.034,5,0.9648

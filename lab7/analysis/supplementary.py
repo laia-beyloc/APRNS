@@ -7,8 +7,12 @@ signe) amb correcció de Holm, resums robustos (mediana, IQM), taxa d'aterratges
 Si hi ha resultats de la prova de control fora de protocol (config.SANITY_CONFIGS), en fa
 la comparació aparellada amb TD3 complet a les mateixes llavors i en resumeix l'avaluació
 final de 100 episodis. Els estadístics que no són taules ni figures es desen a summary.txt.
+Amb --prefix prof_ fa el mateix per a la segona ablació (config.PROF_VARIANTS), en resumeix
+l'avaluació final i compara cada variant amb la seva homòloga de l'estudi principal
+(mateixa llavor), inclosa la interacció base × mecanisme.
 
 Ús (des de lab7/):  python -m analysis.supplementary --results results --out analysis/supplementary
+        segona ablació:  python -m analysis.supplementary --prefix prof_ --out analysis/prof/supplementary
 """
 import argparse, json, csv, itertools
 from pathlib import Path
@@ -19,15 +23,17 @@ import matplotlib.pyplot as plt
 parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 parser.add_argument("--results", type=Path, default=Path("results"))
 parser.add_argument("--out", type=Path, default=Path("analysis/supplementary"))
+parser.add_argument("--prefix", default="", help="prefix de les variants ('prof_' per a la segona ablació)")
 args = parser.parse_args()
-R, OUT = args.results, args.out; OUT.mkdir(parents=True, exist_ok=True)
+R, OUT, P = args.results, args.out, args.prefix; OUT.mkdir(parents=True, exist_ok=True)
 SUMMARY = []
 def report(*items):
     """Mostra una línia i la guarda a summary.txt (xifres citables a l'informe)."""
     line = " ".join(str(i) for i in items); print(line); SUMMARY.append(line)
-V = ["full","no_minimum","no_smoothing","no_delay"]
+BASE_V = ["full","no_minimum","no_smoothing","no_delay"]
+V = [P+v for v in BASE_V]
 def rd(p): return list(csv.DictReader(open(p, encoding="utf-8")))
-runs = {v:{int(d.name[5:]): rd(d/"evaluations.csv") for d in (R/v).glob("seed_*")} for v in V+["ddpg"]}
+runs = {v:{int(d.name[5:]): rd(d/"evaluations.csv") for d in (R/v).glob("seed_*")} for v in V+([] if P else ["ddpg"])}
 T=300_000
 def metrics(rows):
     x=np.array([float(r["transitions"]) for r in rows]); y=np.array([float(r["eval_mean_return"]) for r in rows])
@@ -45,7 +51,7 @@ lines=["metric,variant,mean_diff,median_diff,wins_of_10,perm_p,holm_p"]
 for met in ["last","auc","succ","hover"]:
     res=[]
     for v in V[1:]:
-        d=np.array([M[v][s][met]-M["full"][s][met] for s in range(10)])
+        d=np.array([M[v][s][met]-M[V[0]][s][met] for s in range(10)])
         res.append([v,d.mean(),np.median(d),int((d>0).sum()),perm_p(d)])
     order=np.argsort([r[4] for r in res]); m=len(res); holm=[0]*m; run=0
     for rank,i in enumerate(order):
@@ -76,18 +82,19 @@ axes[0].legend(); fig.tight_layout(); fig.savefig(OUT/"success_and_length.png",d
 fig,axes=plt.subplots(1,4,figsize=(14,3.5),sharey=True)
 for ax,v in zip(axes,V):
     for s in range(10):
-        rows=runs[v][s]; x=[float(r["transitions"]) for r in rows]; y=np.convolve([float(r["eval_mean_return"]) for r in rows],np.ones(5)/5,mode="same")
+        rows=runs[v][s]; x=[float(r["transitions"]) for r in rows][4:]; y=np.convolve([float(r["eval_mean_return"]) for r in rows],np.ones(5)/5,mode="valid")  # mòbil causal, sense vores amb zeros
         ax.plot(x,y,lw=0.8)
     ax.axhline(200,color="k",ls="--",lw=0.7); ax.set(title=v,xlabel="Transicions (milers)")
     ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda val, _: f"{val/1000:.0f}"))
 axes[0].set_ylim(-400,300); axes[0].set_ylabel("Retorn avaluació (mòbil 5)")
 fig.tight_layout(); fig.savefig(OUT/"per_seed_curves.png",dpi=150); plt.close(fig)
-# DDPG vs full llavor 0: biaix
-fig,ax=plt.subplots(figsize=(7,3.5))
-for v in ["ddpg","full"]:
-    rows=runs[v][0]; ax.plot([float(r["transitions"]) for r in rows],[float(r["bias_all"]) for r in rows],label=f"{v} (llavor 0)")
-ax.axhline(0,color="k",lw=0.7); ax.set(xlabel="Transicions",ylabel="Q(s,μ(s)) − G",ylim=(-100,200),title="Biaix d'estimació: DDPG vs TD3 (exploratori)")
-ax.legend(); fig.tight_layout(); fig.savefig(OUT/"ddpg_vs_td3_bias.png",dpi=150); plt.close(fig)
+# DDPG vs full llavor 0: biaix (només a l'estudi principal)
+if not P:
+    fig,ax=plt.subplots(figsize=(7,3.5))
+    for v in ["ddpg","full"]:
+        rows=runs[v][0]; ax.plot([float(r["transitions"]) for r in rows],[float(r["bias_all"]) for r in rows],label=f"{v} (llavor 0)")
+    ax.axhline(0,color="k",lw=0.7); ax.set(xlabel="Transicions",ylabel="Q(s,μ(s)) − G",ylim=(-100,200),title="Biaix d'estimació: DDPG vs TD3 (exploratori)")
+    ax.legend(); fig.tight_layout(); fig.savefig(OUT/"ddpg_vs_td3_bias.png",dpi=150); plt.close(fig)
 # relació biaix final - retorn final entre execucions TD3
 bias={v:[np.nanmean([float(r["bias_all"]) for r in runs[v][s][-10:]]) for s in range(10)] for v in V}
 fig,ax=plt.subplots(figsize=(5,4))
@@ -99,13 +106,17 @@ fig.tight_layout(); fig.savefig(OUT/"bias_vs_return.png",dpi=150); plt.close(fig
 rk=lambda a: np.argsort(np.argsort(a)); report("Spearman biaix-retorn (40 exec.):",np.corrcoef(rk(allb),rk(allr))[0,1])
 for v in V: report(v,"Spearman intra-variant:",round(np.corrcoef(rk(bias[v]),rk([M[v][s]["last"] for s in range(10)]))[0,1],2))
 # inestabilitat: caigudes > 200 entre avaluacions consecutives després de 50k
+drops={}
 for v in V:
     c=[int(np.sum(np.diff([float(r["eval_mean_return"]) for r in runs[v][s][50:]])<-200)) for s in range(10)]
     w=[float(json.load(open(R/v/f"seed_{s}"/"config.json"))["wall_time_s"]) for s in range(10)]
+    drops[v]=np.array(c)
     report(v,"caigudes>200:",sum(c),c," temps mitjà h:",round(np.mean(w)/3600,2))
+for v in V[1:]:
+    d=drops[v]-drops[V[0]]; report(v,f"caigudes - {V[0]}: mitjana",d.mean(),"p permutació",round(perm_p(d),4))
 
 # ---------------------------------------------------------------- prova de control (fora de protocol)
-SANITY = [name for name in ("td3_paper", "no_weight_decay") if (R/name).is_dir()]
+SANITY = [name for name in ("td3_paper", "no_weight_decay") if (R/name).is_dir()] if not P else []
 if SANITY:
     seeds = sorted(int(d.name[5:]) for d in (R/SANITY[0]).glob("seed_*"))
     def config(v, s): return json.load(open(R/v/f"seed_{s}"/"config.json", encoding="utf-8"))
@@ -138,12 +149,52 @@ if SANITY:
         for ax, col in zip(axes, ["eval_mean_return", "bias_all"]):
             Y = [[float(r[col]) for r in rd(R/v/f"seed_{s}"/"evaluations.csv")] for s in seeds]
             x = [float(r["transitions"]) for r in rd(R/v/f"seed_{seeds[0]}"/"evaluations.csv")]
-            ax.plot(x, np.convolve(np.nanmean(Y, 0), np.ones(5)/5, mode="same"), label=v)
+            ax.plot(x[4:], np.convolve(np.nanmean(Y, 0), np.ones(5)/5, mode="valid"), label=v)  # sense vores amb zeros
     axes[0].axhline(200, color="k", ls="--", lw=0.7)
     axes[0].set(xlabel="Transicions", ylabel="Retorn avaluació (mitjana, mòbil 5)",
                 title=f"Prova de control (llavors {seeds[0]}–{seeds[-1]})")
     axes[1].axhline(0, color="k", lw=0.7)
     axes[1].set(xlabel="Transicions", ylabel="Q(s,μ(s)) − G", ylim=(-60, 120), title="Biaix d'estimació")
     axes[0].legend(fontsize=8); fig.tight_layout(); fig.savefig(OUT/"sanity_curves.png", dpi=150); plt.close(fig)
+
+# ---------------------------------------------------------------- segona ablació: avaluació final i comparació entre bases
+if P:
+    def cfg(v, s): return json.load(open(R/v/f"seed_{s}"/"config.json", encoding="utf-8"))
+    def bias_last(v, s): return np.nanmean([float(r["bias_all"]) for r in rd(R/v/f"seed_{s}"/"evaluations.csv")[-10:]])
+    # avaluació final (100 episodis, llavors 20000-20099, xarxes finals)
+    lines = ["variant,seed,final_mean_return,final_success_rate,final_truncated_rate,final_bias_all"]
+    for v in V:
+        for s in range(10):
+            fe = cfg(v, s)["final_evaluation"]
+            lines.append(f"{v},{s},{fe['mean_return']:.2f},{fe['success_rate']:.3f},{fe['truncated_rate']:.3f},{fe['bias_all']:.2f}")
+    open(OUT/"final_evaluation_per_seed.csv", "w").write("\n".join(lines)+"\n")
+    lines = ["variant,mean_final_return,median_final_return,mean_success,mean_truncated,seeds_success_ge_0.5,mean_final_bias"]
+    for v in V:
+        fe = [cfg(v, s)["final_evaluation"] for s in range(10)]
+        a = lambda k: np.array([f[k] for f in fe])
+        lines.append(f"{v},{a('mean_return').mean():.1f},{np.median(a('mean_return')):.1f},{a('success_rate').mean():.3f},"
+                     f"{a('truncated_rate').mean():.3f},{int((a('success_rate')>=0.5).sum())},{a('bias_all').mean():.2f}")
+    open(OUT/"final_evaluation_summary.csv", "w").write("\n".join(lines)+"\n")
+    report("Avaluació final (100 episodis, xarxes finals)"); report("\n".join(lines))
+    # comparació aparellada amb l'estudi principal (mateixa llavor) i interacció base × mecanisme
+    Mmain = {b: {s: metrics(rd(R/b/f"seed_{s}"/"evaluations.csv")) for s in range(10)} for b in BASE_V}
+    lines = ["comparison,metric,mean_diff,wins_of_10,perm_p"]
+    for b in BASE_V:
+        for met in ["last", "auc", "succ", "hover"]:
+            d = np.array([M[P+b][s][met] - Mmain[b][s][met] for s in range(10)])
+            lines.append(f"{P}{b} - {b},{met},{d.mean():.3f},{int((d>0).sum())},{perm_p(d):.4f}")
+        d = np.array([bias_last(P+b, s) - bias_last(b, s) for s in range(10)])
+        lines.append(f"{P}{b} - {b},bias,{d.mean():.3f},{int((d>0).sum())},{perm_p(d):.4f}")
+    # interacció: (variant − full) amb la base del professor menys (variant − full) amb la de l'enunciat
+    for b in BASE_V[1:]:
+        for met in ["last", "auc", "succ"]:
+            d = np.array([(M[P+b][s][met] - M[V[0]][s][met]) - (Mmain[b][s][met] - Mmain["full"][s][met]) for s in range(10)])
+            lines.append(f"interaction {b},{met},{d.mean():.3f},{int((d>0).sum())},{perm_p(d):.4f}")
+    open(OUT/"base_comparison.csv", "w").write("\n".join(lines)+"\n")
+    report("Comparació amb l'estudi principal (mateixes llavors)"); report("\n".join(lines))
+    # biaix final per variant (diagnòstic de sobreestimació)
+    for v in V:
+        b = [bias_last(v, s) for s in range(10)]
+        report(v, "biaix final mitjà:", round(np.mean(b), 1), "mediana:", round(np.median(b), 1), "per llavor:", np.round(b, 1).tolist())
 
 (OUT/"summary.txt").write_text("\n".join(SUMMARY)+"\n", encoding="utf-8")

@@ -1,0 +1,13 @@
+metric,variant,mean_diff,median_diff,wins_of_10,perm_p,holm_p
+last,prof_no_minimum,-13.811,-3.218,4,0.6914,1.0000
+last,prof_no_smoothing,-11.402,-3.247,4,0.6758,1.0000
+last,prof_no_delay,37.057,11.272,6,0.4004,1.0000
+auc,prof_no_minimum,9.035,-10.451,5,0.7988,1.0000
+auc,prof_no_smoothing,-12.821,-25.114,4,0.7617,1.0000
+auc,prof_no_delay,19.687,-24.430,5,0.6426,1.0000
+succ,prof_no_minimum,-0.040,-0.030,4,0.7500,1.0000
+succ,prof_no_smoothing,-0.004,0.010,5,0.9609,1.0000
+succ,prof_no_delay,0.124,0.030,6,0.2969,0.8906
+hover,prof_no_minimum,-0.060,0.000,2,0.7500,1.0000
+hover,prof_no_smoothing,0.030,0.000,2,1.0000,1.0000
+hover,prof_no_delay,-0.030,0.000,1,1.0000,1.0000

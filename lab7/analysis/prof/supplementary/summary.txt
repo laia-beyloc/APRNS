@@ -1,0 +1,71 @@
+metric,variant,mean_diff,median_diff,wins_of_10,perm_p,holm_p
+last,prof_no_minimum,-13.811,-3.218,4,0.6914,1.0000
+last,prof_no_smoothing,-11.402,-3.247,4,0.6758,1.0000
+last,prof_no_delay,37.057,11.272,6,0.4004,1.0000
+auc,prof_no_minimum,9.035,-10.451,5,0.7988,1.0000
+auc,prof_no_smoothing,-12.821,-25.114,4,0.7617,1.0000
+auc,prof_no_delay,19.687,-24.430,5,0.6426,1.0000
+succ,prof_no_minimum,-0.040,-0.030,4,0.7500,1.0000
+succ,prof_no_smoothing,-0.004,0.010,5,0.9609,1.0000
+succ,prof_no_delay,0.124,0.030,6,0.2969,0.8906
+hover,prof_no_minimum,-0.060,0.000,2,0.7500,1.0000
+hover,prof_no_smoothing,0.030,0.000,2,1.0000,1.0000
+hover,prof_no_delay,-0.030,0.000,1,1.0000,1.0000
+variant,mean_last,median_last,iqm_last,mean_auc,iqm_auc,mean_success,mean_hover,seeds_majority_landing
+prof_full,207.6,262.1,256.7,96.2,102.4,0.776,0.130,8
+prof_no_minimum,193.8,249.6,236.5,105.3,125.2,0.736,0.070,8
+prof_no_smoothing,196.2,261.8,254.7,83.4,109.7,0.772,0.160,8
+prof_no_delay,244.7,277.2,275.9,115.9,126.5,0.900,0.100,9
+Spearman biaix-retorn (40 exec.): -0.4461538461538462
+prof_full Spearman intra-variant: 0.04
+prof_no_minimum Spearman intra-variant: -0.9
+prof_no_smoothing Spearman intra-variant: -0.77
+prof_no_delay Spearman intra-variant: 0.15
+prof_full caigudes>200: 13 [1, 1, 3, 1, 2, 2, 0, 0, 3, 0]  temps mitjà h: 1.5
+prof_no_minimum caigudes>200: 34 [1, 2, 4, 6, 2, 2, 4, 2, 4, 7]  temps mitjà h: 1.43
+prof_no_smoothing caigudes>200: 18 [5, 0, 0, 3, 1, 1, 5, 0, 2, 1]  temps mitjà h: 1.47
+prof_no_delay caigudes>200: 9 [2, 1, 2, 0, 0, 1, 0, 0, 3, 0]  temps mitjà h: 1.63
+prof_no_minimum caigudes - prof_full: mitjana 2.1 p permutació 0.0156
+prof_no_smoothing caigudes - prof_full: mitjana 0.5 p permutació 0.6289
+prof_no_delay caigudes - prof_full: mitjana -0.4 p permutació 0.3125
+Avaluació final (100 episodis, xarxes finals)
+variant,mean_final_return,median_final_return,mean_success,mean_truncated,seeds_success_ge_0.5,mean_final_bias
+prof_full,204.8,268.8,0.780,0.149,8,-3.63
+prof_no_minimum,171.0,258.7,0.690,0.190,7,40.64
+prof_no_smoothing,193.6,260.4,0.767,0.212,8,1.47
+prof_no_delay,238.8,271.8,0.882,0.112,9,-4.21
+Comparació amb l'estudi principal (mateixes llavors)
+comparison,metric,mean_diff,wins_of_10,perm_p
+prof_full - full,last,258.868,10,0.0020
+prof_full - full,auc,211.416,10,0.0020
+prof_full - full,succ,0.756,9,0.0039
+prof_full - full,hover,-0.520,0,0.0039
+prof_full - full,bias,-0.116,5,0.9648
+prof_no_minimum - no_minimum,last,138.427,8,0.0410
+prof_no_minimum - no_minimum,auc,151.065,9,0.0039
+prof_no_minimum - no_minimum,succ,0.460,8,0.0352
+prof_no_minimum - no_minimum,hover,-0.180,3,0.3125
+prof_no_minimum - no_minimum,bias,4.245,6,0.6738
+prof_no_smoothing - no_smoothing,last,250.841,9,0.0059
+prof_no_smoothing - no_smoothing,auc,178.991,9,0.0059
+prof_no_smoothing - no_smoothing,succ,0.702,8,0.0078
+prof_no_smoothing - no_smoothing,hover,-0.540,2,0.0391
+prof_no_smoothing - no_smoothing,bias,0.915,5,0.8516
+prof_no_delay - no_delay,last,224.991,10,0.0020
+prof_no_delay - no_delay,auc,202.689,10,0.0020
+prof_no_delay - no_delay,succ,0.722,9,0.0039
+prof_no_delay - no_delay,hover,-0.470,0,0.0156
+prof_no_delay - no_delay,bias,5.126,4,0.2188
+interaction no_minimum,last,-120.441,3,0.1074
+interaction no_minimum,auc,-60.351,4,0.2246
+interaction no_minimum,succ,-0.296,4,0.1465
+interaction no_smoothing,last,-8.028,4,0.9121
+interaction no_smoothing,auc,-32.425,4,0.4375
+interaction no_smoothing,succ,-0.054,6,0.9180
+interaction no_delay,last,-33.877,4,0.5898
+interaction no_delay,auc,-8.727,4,0.8281
+interaction no_delay,succ,-0.034,5,0.9648
+prof_full biaix final mitjà: -6.5 mediana: -5.8 per llavor: [-8.4, -5.6, -14.3, -3.9, -0.1, 1.1, -5.3, -5.9, -13.8, -9.0]
+prof_no_minimum biaix final mitjà: 36.4 mediana: 32.2 per llavor: [13.4, 15.1, 85.7, 52.2, 29.1, 21.9, 35.5, 35.3, 25.4, 50.8]
+prof_no_smoothing biaix final mitjà: -1.3 mediana: -0.7 per llavor: [8.2, 4.9, -5.6, -6.1, 3.5, 0.5, -1.5, -9.2, 0.1, -7.5]
+prof_no_delay biaix final mitjà: -9.3 mediana: -9.8 per llavor: [-9.9, -5.9, -12.5, -12.0, -8.2, -4.4, -13.1, -5.9, -10.9, -9.7]

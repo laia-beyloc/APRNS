@@ -1,0 +1,5 @@
+variant,mean_final_return,median_final_return,mean_success,mean_truncated,seeds_success_ge_0.5,mean_final_bias
+prof_full,204.8,268.8,0.780,0.149,8,-3.63
+prof_no_minimum,171.0,258.7,0.690,0.190,7,40.64
+prof_no_smoothing,193.6,260.4,0.767,0.212,8,1.47
+prof_no_delay,238.8,271.8,0.882,0.112,9,-4.21
