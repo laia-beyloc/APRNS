@@ -16,7 +16,12 @@
 \newunicodechar{Δ}{\ensuremath{\Delta}}
 \newunicodechar{≥}{\ensuremath{\geq}}
 \usepackage{csquotes}
-\setlength{\parskip}{0.4em}
+\setlength{\parskip}{0.3em}
+% Flotants: permet figura i taula a dalt d'una pàgina amb text a sota (sense pàgines només de flotants)
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.9}
+\setcounter{topnumber}{3}
 
 % ---------- Contenido ----------
 \usepackage{amsmath,amssymb}
